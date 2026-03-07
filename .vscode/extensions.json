@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "fill-labs.dependi",
+        "EditorConfig.EditorConfig",
+        "nefrob.vscode-just-syntax",
+        "PKief.material-icon-theme",
+    ]
+}

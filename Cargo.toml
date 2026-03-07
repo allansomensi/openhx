@@ -1,0 +1,63 @@
+[workspace.package]
+description = "A cross-platform Rust GUI and CLI for controlling the Line 6 HX Stomp."
+version = "0.1.0"
+authors = ["Allan Somensi <allansomensidev@proton.me>"]
+documentation = "https://github.com/allansomensi/openhx"
+homepage = "https://github.com/allansomensi/openhx"
+repository = "https://github.com/allansomensi/openhx"
+readme = "README.md"
+keywords = ["usb", "hx-stomp", "line6", "audio", "cli"]
+categories = ["command-line-utilities", "multimedia::audio", "hardware-support"]
+license = "MIT"
+exclude = ["/.github/", "/pkg/"]
+edition = "2024"
+
+[workspace]
+members = [
+    "crates/core",
+    "crates/cli",
+    "crates/gui",
+    "crates/i18n",
+    "crates/openhx",
+]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[workspace.dependencies]
+openhx_core = { path = "crates/core" }
+openhx_i18n = { path = "crates/i18n" }
+
+clap = { version = "4", features = ["derive"] }
+iced = { version = "0.14", features = ["tokio"] }
+rusb = "0.9"
+rmpv = "1.0"
+tokio = { version = "1", features = ["full"] }
+thiserror = "2.0"
+
+# i18n
+i18n-embed = { version = "0.16", features = [
+    "fluent-system",
+    "desktop-requester",
+] }
+i18n-embed-fl = "0.10"
+rust-embed = "8.9"
+
+# Dev
+cargo-husky = { version = "1.5.0", default-features = false, features = [
+    "run-for-all",
+    "prepush-hook",
+    "precommit-hook",
+    "run-cargo-test",
+    "run-cargo-clippy",
+    "run-cargo-fmt",
+] }

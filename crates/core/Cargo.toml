@@ -1,0 +1,17 @@
+[package]
+name = "openhx_core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[package.metadata.dist]
+dist = false
+
+[dependencies]
+openhx_i18n = { workspace = true }
+rusb = { workspace = true }
+rmpv = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+cargo-husky = { workspace = true }
