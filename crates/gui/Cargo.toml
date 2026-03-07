@@ -1,0 +1,14 @@
+[package]
+name = "openhx_gui"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[package.metadata.dist]
+dist = false
+
+[dependencies]
+openhx_core = { workspace = true }
+openhx_i18n = { workspace = true }
+iced = { workspace = true }
+tokio = { workspace = true }

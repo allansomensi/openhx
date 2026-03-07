@@ -1,0 +1,10 @@
+[package]
+name = "openhx_i18n"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+i18n-embed = { workspace = true }
+i18n-embed-fl = { workspace = true }
+rust-embed = { workspace = true }
