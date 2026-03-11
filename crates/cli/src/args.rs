@@ -11,11 +11,20 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    #[command(about = fl!("cli-preset-category-about"))]
+    Preset {
+        #[command(subcommand)]
+        action: PresetAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum PresetAction {
     #[command(
         about = fl!("cli-list-presets-about"),
         long_about = fl!("cli-list-presets-long")
     )]
-    ListPresets {
+    List {
         #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
         device: Option<DeviceArg>,
     },

@@ -6,6 +6,7 @@ error-unknown = Erro desconhecido
 
 cli-list-presets-about = Lista todos os presets de um dispositivo Line 6 conectado.
 cli-list-presets-long = Verifica o barramento USB automaticamente se nenhum dispositivo for especificado.
+cli-preset-category-about = Gerenciar, listar e modificar presets do dispositivo.
 cli-device-help = Alveja um dispositivo específico em vez de detectar automaticamente.
 cli-connecting-to = Conectando a { $device_name } …
 cli-probing-usb = Nenhum dispositivo especificado — verificando barramento USB por qualquer dispositivo Line 6 suportado...
