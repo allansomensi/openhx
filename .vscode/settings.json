@@ -3,6 +3,8 @@
         "crates": "components",
         "device": "controller",
         "openhx": "app",
+        "presets": "mappings",
+        "protocol": "contract",
         "usb": "connection",
         "wix": "windows"
     },
