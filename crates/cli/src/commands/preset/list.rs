@@ -2,7 +2,7 @@ use crate::args::DeviceArg;
 use openhx_core::{device::KnownDevice, error::HxError, usb::client::Client};
 use openhx_i18n::fl;
 
-/// Executes the `list-presets` CLI command.
+/// Executes the `preset list` CLI command.
 pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
     let client = match device {
         Some(d) => {

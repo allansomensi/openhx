@@ -3,9 +3,14 @@
         "crates": "components",
         "device": "controller",
         "openhx": "app",
+        "preset": "mappings",
         "presets": "mappings",
         "protocol": "contract",
         "usb": "connection",
         "wix": "windows"
     },
+    "conventionalCommits.scopes": [
+        "cli",
+        "gui"
+    ],
 }

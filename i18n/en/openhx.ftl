@@ -6,6 +6,7 @@ error-unknown = Unknown error
 
 cli-list-presets-about = Lists all presets from a connected Line 6 device.
 cli-list-presets-long = Probes the USB bus automatically if no device is specified.
+cli-preset-category-about = Manage, list, and modify device presets.
 cli-device-help = Target a specific device instead of auto-detecting.
 cli-connecting-to = Connecting to { $device_name } …
 cli-probing-usb = No device specified — probing USB bus for any supported Line 6 device...
