@@ -1,0 +1,65 @@
+name: Feature Request
+description: Suggest a new feature or improvement.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, check the [open issues](../../issues) and [project roadmap](../../README.md#features) to see if this has already been requested.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Preset management (list, rename, reorder)
+        - Import / Export
+        - Footswitch / control
+        - GUI
+        - CLI
+        - Protocol / new device support
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or limitation you're running into.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What would you like to see implemented? Be as specific as you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any other approaches or workarounds you've thought about?
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Relevant Device(s)
+      description: Which HX devices would this apply to?
+      placeholder: e.g. HX Stomp XL, all HX devices
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Screenshots, USB captures, links, or anything else relevant.
+    validations:
+      required: false
