@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Protocol Documentation
+    url: https://github.com/allansomensi/openhx/tree/main/docs/protocol
+    about: Read the reverse-engineered USB protocol docs before opening a protocol-related issue.
+  - name: Contributing Guide
+    url: https://github.com/allansomensi/openhx/blob/main/CONTRIBUTING.md
+    about: Read this before submitting code or protocol research.
