@@ -126,6 +126,55 @@ impl Client {
         Ok(client)
     }
 
+    /// Executes the proprietary preset selection command over the USB bulk endpoints.
+    ///
+    /// This method leverages the same robust retry and backoff mechanism used
+    /// when reading presets to ensure the device acknowledges the change.
+    pub fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+                self.drain_stale_data();
+            }
+
+            match self.run_select_session(bank, preset, timeout) {
+                Ok(_) => return Ok(()),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Internal routine to handle the session cycle specifically for changing a preset.
+    fn run_select_session(&self, bank: u8, preset: u8, timeout: Duration) -> Result<(), HxError> {
+        let mut buf = vec![0u8; 512];
+
+        // 1. Session init (5 packets, one ACK each)
+        for packet in SESSION_INIT_SEQUENCE {
+            self.handle.write_bulk(EP_OUT, packet, timeout)?;
+            self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
+        }
+
+        // 2. Send the Select Preset command (after handshake, the next seq is 0x06)
+        let seq = 0x06;
+        let request = build_select_preset_request(seq, bank, preset);
+
+        self.handle.write_bulk(EP_OUT, &request, timeout)?;
+        self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
+
+        Ok(())
+    }
+
     /// Executes a single, complete preset extraction session.
     fn run_session(&self, timeout: Duration) -> Result<Vec<Preset>, HxError> {
         let mut buf = vec![0u8; 512];

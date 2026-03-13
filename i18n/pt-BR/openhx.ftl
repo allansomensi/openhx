@@ -12,6 +12,10 @@ cli-connecting-to = Conectando a { $device_name } …
 cli-probing-usb = Nenhum dispositivo especificado — verificando barramento USB por qualquer dispositivo Line 6 suportado...
 cli-connected-to = Conectado a: { $profile }
 cli-total-presets = Total: { $count } preset(s) lido(s).
+cli-select-preset-about = Seleciona um preset específico no dispositivo
+cli-select-preset-long = Altera o preset ativo no dispositivo Line 6 conectado, informando os índices de banco e preset.
+cli-selecting-preset = Selecionando banco {$bank}, preset {$preset}...
+cli-preset-selected-success = Preset selecionado com sucesso!
 
 usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.

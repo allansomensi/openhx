@@ -82,3 +82,26 @@ pub fn build_pagination_request(seq: u8, offset: u32) -> [u8; 16] {
         0x08, 0x00, 0x00, 0x18, 0x01, 0x10, 0xEF, 0x03, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
     ]
 }
+
+/// Builds a preset selection request (`cmd = 0x04`, `seq = 0x06`).
+/// The payload is a MsgPack structure: {102: 1010, 100: 20, 101: {107: bank, 108: preset}}
+#[inline]
+pub fn build_select_preset_request(seq: u8, bank: u8, preset: u8) -> [u8; 40] {
+    [
+        0x1D, 0x00, 0x00, 0x18, // Header mágico com length para pacote de 40 bytes
+        0x01, 0x10, 0xEF, 0x03, // Routing padrão Line 6
+        0x00, seq, 0x00, 0x04, // Sequence e Command (0x04)
+        // Inner resource header
+        0x1A, 0x10, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x0D, 0x00, 0x00,
+        0x00, // Length do payload MsgPack (13 bytes)
+        // MsgPack Payload
+        0x83, // fixmap(3 items)
+        0x66, 0xCD, 0x03, 0xF2, // Key 102 (Transaction ID): 1010
+        0x64, 0x14, // Key 100 (Command Type): 20 (Select)
+        0x65, 0x82, // Key 101 (Args): map(2 items)
+        0x6B, bank, // Key 107 (Bank Index): bank
+        0x6C, preset, // Key 108 (Preset Index): preset
+        // Padding para alinhar em limite de 4 bytes
+        0x00, 0x00, 0x00,
+    ]
+}

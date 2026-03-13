@@ -1,12 +1,12 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Preset {
-    pub index: u16,
+    pub index: u8,
     pub name: String,
 }
 
 impl Preset {
     #[inline]
-    pub fn new(index: u16, name: impl Into<String>) -> Self {
+    pub fn new(index: u8, name: impl Into<String>) -> Self {
         Self {
             index,
             name: name.into(),

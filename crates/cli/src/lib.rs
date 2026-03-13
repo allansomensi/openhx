@@ -11,6 +11,11 @@ pub fn run() -> Result<(), HxError> {
     match cli.command {
         Commands::Preset { action } => match action {
             PresetAction::List { device } => commands::preset::list::execute(device),
+            PresetAction::Select {
+                device,
+                bank,
+                preset,
+            } => commands::preset::select::execute(device, bank, preset),
         },
     }
 }

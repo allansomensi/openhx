@@ -28,6 +28,21 @@ pub enum PresetAction {
         #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
         device: Option<DeviceArg>,
     },
+
+    #[command(
+        about = fl!("cli-select-preset-about"),
+        long_about = fl!("cli-select-preset-long")
+    )]
+    Select {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+
+        #[arg(short, long, default_value_t = 0)]
+        bank: u8,
+
+        #[arg(short, long)]
+        preset: u8,
+    },
 }
 
 /// CLI-friendly wrapper around [`KnownDevice`] that implements [`clap::ValueEnum`].
