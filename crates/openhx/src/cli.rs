@@ -1,4 +1,9 @@
 fn main() {
     openhx_i18n::localize();
-    openhx_cli::run().unwrap();
+
+    if let Err(e) = openhx_cli::run() {
+        eprintln!("Error: {e}");
+
+        std::process::exit(1);
+    }
 }
