@@ -13,6 +13,15 @@ cli-probing-usb = Nenhum dispositivo especificado — verificando barramento USB
 cli-connected-to = Conectado a: { $profile }
 cli-total-presets = Total: { $count } preset(s) lido(s).
 
+cli-select-preset-about = Seleciona um preset no dispositivo conectado.
+cli-select-preset-long =
+    Ativa o preset no slot de índice informado (base 0).
+    O índice corresponde ao que a pedaleira exibe: 0 = "00", 1 = "01", etc.
+    Atenção: o HX Edit usa índices base 1 — subtraia 1 ao converter.
+cli-select-preset-index-help = Índice do preset a ativar (base 0; ex.: 0 = "00" na pedaleira).
+cli-selecting-preset = Selecionando preset { $index } …
+cli-preset-selected = ✓ Preset { $index } ativado: { $name }
+
 usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }

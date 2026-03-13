@@ -82,3 +82,26 @@ pub fn build_pagination_request(seq: u8, offset: u32) -> [u8; 16] {
         0x08, 0x00, 0x00, 0x18, 0x01, 0x10, 0xEF, 0x03, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
     ]
 }
+
+pub const RESPONSE_SUB_HEADER_SIZE: usize = 8;
+pub const RESPONSE_PAYLOAD_OFFSET: usize = RESPONSE_HEADER_SIZE + RESPONSE_SUB_HEADER_SIZE;
+pub const FIRST_APP_SEQ: u8 = 0x06;
+
+/// Builds a change preset request (`cmd = 0x04`).
+#[inline]
+pub fn build_change_preset_command(seq: u8, preset: u8) -> [u8; 40] {
+    [
+        0x1D, 0x00, 0x00, 0x18, // Header length = 29
+        0x01, 0x10, 0xEF, 0x03, // Routing
+        0x00, seq, 0x00, 0x04, // Sequence & Command
+        0x1A, 0x10, 0x00, 0x00, // Sub-header
+        0x01, 0x00, 0x02, 0x00, 0x0D, 0x00, 0x00, 0x00, // MsgPack payload length (13 bytes)
+        0x83, // fixmap(3)
+        0x66, 0xCD, 0x03, 0xE9, // Key 102 (Transaction ID): 1001
+        0x64, 0x14, // Key 100 (Command Type): 20 (Change Preset)
+        0x65, 0x82, // Key 101 (Args): map(2)
+        0x6B, 0x00, // Key 107 (Bank Index): 0
+        0x6C, preset, // Key 108 (Preset Index): preset
+        0x00, 0x00, 0x00, // Padding
+    ]
+}

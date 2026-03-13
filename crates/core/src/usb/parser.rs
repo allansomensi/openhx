@@ -46,7 +46,7 @@ fn parse_preset(item: &rmpv::Value) -> Result<Preset, HxError> {
 
     let index =
         key.as_u64()
-            .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-index-not-int")))? as u16;
+            .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-index-not-int")))? as u8;
 
     let inner_map = value
         .as_map()

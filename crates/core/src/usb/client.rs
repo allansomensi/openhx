@@ -2,7 +2,8 @@ use super::{parser::parse_msgpack_stream, protocol::*};
 use crate::{
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::Preset,
+    models::{Preset, SelectedPreset},
+    usb::select::parse_select_ack,
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -124,6 +125,52 @@ impl Client {
         client.drain_stale_data();
 
         Ok(client)
+    }
+
+    pub fn select_preset(&self, preset_index: u8) -> Result<SelectedPreset, HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+                self.drain_stale_data();
+            }
+
+            match self.run_select_session(preset_index, timeout) {
+                Ok(selected) => return Ok(selected),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    fn run_select_session(
+        &self,
+        preset_index: u8,
+        timeout: Duration,
+    ) -> Result<SelectedPreset, HxError> {
+        let mut buf = vec![0u8; 512];
+
+        for packet in SESSION_INIT_SEQUENCE {
+            self.handle.write_bulk(EP_OUT, packet, timeout)?;
+            self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
+        }
+
+        let seq = FIRST_APP_SEQ;
+        let request = build_change_preset_command(seq, preset_index);
+
+        self.handle.write_bulk(EP_OUT, &request, timeout)?;
+        let n = self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
+
+        parse_select_ack(&buf[..n])
     }
 
     /// Executes a single, complete preset extraction session.

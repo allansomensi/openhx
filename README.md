@@ -18,10 +18,14 @@ OpenHX was built to close that gap.
 
 > ⚠️ OpenHX is in early development. Features marked 🚧 are planned but not yet implemented.
 
-- ✅ List all 128 preset names from the device
-- 🚧 Rename presets
+- ✅ List presets
+- ✅ Select preset
+- 🚧 Rename preset
 - 🚧 Import and export presets (`.hlx` files)
-- 🚧 Trigger footswitches programmatically
+- 🚧 Reorder blocks
+- 🚧 Toggle individual effect blocks
+- 🚧 Manage Impulse Responses (IRs)
+- 🚧 Configure Global EQ
 - 🚧 Full GUI with preset browser and editor
 - 🚧 Support for multiple HX devices
 
@@ -61,7 +65,10 @@ The binary will be at `target/release/openhx`.
 
 ```bash
 # List all presets
-openhx-cli list-presets
+openhx-cli preset list
+
+# Select a specific preset by its index
+openhx-cli preset select <INDEX>
 ```
 
 ### GUI
