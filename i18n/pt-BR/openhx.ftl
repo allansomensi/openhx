@@ -17,6 +17,8 @@ cli-select-preset-long = Altera o preset ativo no dispositivo Line 6 conectado, 
 cli-selecting-preset = Selecionando banco {$bank}, preset {$preset}...
 cli-preset-selected-success = Preset selecionado com sucesso!
 
+mock-mode-active = [mock] Rodando em modo simulado — hardware físico não é necessário.
+
 usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }

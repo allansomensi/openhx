@@ -1,6 +1,6 @@
 use crate::message::Message;
 use iced::futures::{self, SinkExt, channel::mpsc::Sender};
-use openhx_core::Client;
+use openhx_core::{connect_client, is_device_available};
 use std::time::Duration;
 
 /// Creates an asynchronous stream that actively polls for a connected device.
@@ -11,7 +11,7 @@ pub fn usb_poll() -> impl futures::Stream<Item = Message> {
         loop {
             interval.tick().await;
 
-            let result = tokio::task::spawn_blocking(|| match Client::detect() {
+            let result = tokio::task::spawn_blocking(|| match connect_client(None) {
                 Ok(client) => {
                     let name = client.profile().name.to_string();
                     match client.read_presets() {
@@ -25,7 +25,6 @@ pub fn usb_poll() -> impl futures::Stream<Item = Message> {
 
             if let Ok(Some(msg)) = result {
                 let _ = output.send(msg).await;
-
                 break;
             }
         }
@@ -40,7 +39,7 @@ pub fn usb_check_disconnect() -> impl futures::Stream<Item = Message> {
         loop {
             interval.tick().await;
 
-            let is_disconnected = tokio::task::spawn_blocking(|| Client::detect().is_err())
+            let is_disconnected = tokio::task::spawn_blocking(|| !is_device_available())
                 .await
                 .unwrap_or(true);
 

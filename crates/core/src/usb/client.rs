@@ -1,5 +1,6 @@
 use super::{parser::parse_msgpack_stream, protocol::*};
 use crate::{
+    client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
     models::Preset,
@@ -49,47 +50,6 @@ impl Client {
         Err(HxError::DeviceNotFound)
     }
 
-    /// Returns a reference to the static metadata profile of the connected device.
-    #[inline]
-    #[must_use]
-    pub fn profile(&self) -> &'static DeviceProfile {
-        self.profile
-    }
-
-    /// Executes the full proprietary preset-read sequence over the USB bulk endpoints.
-    ///
-    /// This method includes a retry mechanism with exponential backoff to handle
-    /// transient device unresponsiveness (e.g., when the hardware is busy processing UI
-    /// events or just finishing its boot sequence). Upon success, the presets are
-    /// returned sorted by their hardware index.
-    pub fn read_presets(&self) -> Result<Vec<Preset>, HxError> {
-        let timeout = Duration::from_millis(TIMEOUT_MS);
-
-        for attempt in 0..MAX_INIT_RETRIES {
-            if attempt > 0 {
-                self.wait_with_backoff(attempt);
-                self.drain_stale_data();
-            }
-
-            match self.run_session(timeout) {
-                Ok(mut presets) => {
-                    presets.sort_unstable_by_key(|p| p.index);
-                    return Ok(presets);
-                }
-                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
-                    continue;
-                }
-                Err(e) => return Err(e),
-            }
-        }
-
-        Err(HxError::protocol(fl!(
-            "usb-device-unresponsive",
-            device = self.profile.name,
-            attempts = MAX_INIT_RETRIES
-        )))
-    }
-
     /// Internal routine to handle the low-level `libusb` setup for a matched profile.
     ///
     /// This handles detaching default OS kernel drivers, setting the active configuration,
@@ -126,11 +86,39 @@ impl Client {
         Ok(client)
     }
 
-    /// Executes the proprietary preset selection command over the USB bulk endpoints.
-    ///
-    /// This method leverages the same robust retry and backoff mechanism used
-    /// when reading presets to ensure the device acknowledges the change.
-    pub fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError> {
+    /// Core retry loop for reading presets, extracted to avoid name collision
+    /// with the [`DeviceClient`] trait method of the same name.
+    fn read_presets_impl(&self) -> Result<Vec<Preset>, HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+                self.drain_stale_data();
+            }
+
+            match self.run_session(timeout) {
+                Ok(mut presets) => {
+                    presets.sort_unstable_by_key(|p| p.index);
+                    return Ok(presets);
+                }
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Core retry loop for selecting a preset, extracted to avoid name collision
+    /// with the [`DeviceClient`] trait method of the same name.
+    fn select_preset_impl(&self, bank: u8, preset: u8) -> Result<(), HxError> {
         let timeout = Duration::from_millis(TIMEOUT_MS);
 
         for attempt in 0..MAX_INIT_RETRIES {
@@ -186,11 +174,11 @@ impl Client {
             self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
         }
 
-        // Phase 1: open presets resourced
+        // Phase 1: open presets resource
         self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
         self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
 
-        // Phase 2: start stream (first response carries payload
+        // Phase 2: start stream (first response carries payload)
         self.handle.write_bulk(EP_OUT, OPEN_STREAM, timeout)?;
         let n = self.handle.read_bulk(EP_IN, &mut buf, timeout)?;
         self.collect_payload(&mut raw_stream, &buf, n);
@@ -257,6 +245,23 @@ impl Client {
             )
         );
         std::thread::sleep(Duration::from_millis(wait_ms));
+    }
+}
+
+impl DeviceClient for Client {
+    #[inline]
+    fn profile(&self) -> &'static DeviceProfile {
+        self.profile
+    }
+
+    #[inline]
+    fn read_presets(&self) -> Result<Vec<Preset>, HxError> {
+        self.read_presets_impl()
+    }
+
+    #[inline]
+    fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError> {
+        self.select_preset_impl(bank, preset)
     }
 }
 

@@ -18,6 +18,14 @@ lint-fix:
     @cargo fmt --all
     @cargo clippy --all --all-targets --all-features -- --deny warnings
 
+[group('dev')]
+gui-mock:
+    @cargo run --features mock --bin openhx
+
+[group('dev')]
+cli-mock *ARGS:
+    @cargo run --features mock --bin openhx-cli -- {{ ARGS }}
+
 [group('docs')]
 docs CRATE:
     @open "https://docs.rs/{{ CRATE }}"

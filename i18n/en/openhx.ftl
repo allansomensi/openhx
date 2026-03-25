@@ -17,6 +17,8 @@ cli-select-preset-long = Switches the active preset on the connected Line 6 devi
 cli-selecting-preset = Selecting bank {$bank}, preset {$preset}...
 cli-preset-selected-success = Preset successfully selected!
 
+mock-mode-active = [mock] Running in mock mode — no hardware required.
+
 usb-detected = Detected: { $device }
 usb-device-unresponsive = Device '{ $device }' unresponsive after { $attempts } attempts.
 usb-kernel-detach-failed = Kernel detach failed: { $error }
