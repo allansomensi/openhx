@@ -45,7 +45,14 @@ OpenHX was built to close that gap.
 
 ## 📥 Installation
 
-> Pre-built binaries are not yet available. Build from source for now.
+You can find pre-built binaries, installers (`.msi`), and automated installation scripts (`.ps1`, `.sh`) on the **Releases** page.
+
+[![Download Latest Release](https://img.shields.io/github/v/release/allansomensi/openhx?label=Download%20Latest%20Version&style=for-the-badge&color=blue)](https://github.com/allansomensi/openhx/releases/latest)
+
+> **Windows Users:** If you encounter a "SmartScreen" warning when running the MSI, click **"More info"** → **"Run anyway"**. This is normal for unsigned open-source tools.
+
+<details>
+<summary><strong>Or install from source (Cargo)</strong></summary>
 
 **Prerequisites:** Rust toolchain (`rustup`), `libusb` 1.0+.
 
@@ -56,6 +63,7 @@ cargo build --release
 ```
 
 The binary will be at `target/release/openhx`.
+</details>
 
 ---
 
