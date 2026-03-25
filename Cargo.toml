@@ -6,7 +6,7 @@ documentation = "https://github.com/allansomensi/openhx"
 homepage = "https://github.com/allansomensi/openhx"
 repository = "https://github.com/allansomensi/openhx"
 readme = "README.md"
-keywords = ["usb", "hx-stomp", "line6", "audio", "cli"]
+keywords = ["usb", "hx-stomp", "line6", "audio", "cli", "gui"]
 categories = ["command-line-utilities", "multimedia::audio", "hardware-support"]
 license = "MIT"
 exclude = ["/.github/", "/pkg/"]
@@ -37,7 +37,7 @@ lto = "thin"
 openhx_core = { path = "crates/core" }
 openhx_i18n = { path = "crates/i18n" }
 
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 iced = { version = "0.14", features = ["tokio"] }
 rusb = "0.9"
 rmpv = "1.0"
