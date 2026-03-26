@@ -13,6 +13,8 @@ upgrade-guid = "69394F47-512C-45F4-BD84-E941F6D5D642"
 path-guid = "99A8F819-5216-4D3D-BFE9-FC446E2C4BDA"
 license = "../../pkg/windows/license.txt"
 eula = "../../pkg/windows/eula.rtf"
+product-icon = "../../pkg/windows/Product.ico"
+banner = "../../pkg/windows/Banner.png"
 
 [features]
 mock = ["openhx_gui/mock", "openhx_cli/mock"]
