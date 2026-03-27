@@ -2436,7 +2436,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "openhx"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "openhx_cli",
  "openhx_gui",
@@ -2445,7 +2445,7 @@ dependencies = [
 
 [[package]]
 name = "openhx_cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "openhx_core",
@@ -2455,7 +2455,7 @@ dependencies = [
 
 [[package]]
 name = "openhx_core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cargo-husky",
  "openhx_i18n",
@@ -2466,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "openhx_gui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "iced",
  "openhx_core",
@@ -2478,7 +2478,7 @@ dependencies = [
 
 [[package]]
 name = "openhx_i18n"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "i18n-embed",
  "i18n-embed-fl",

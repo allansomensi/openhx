@@ -1,6 +1,6 @@
 [workspace.package]
 description = "A cross-platform Rust GUI and CLI for controlling the Line 6 HX Stomp."
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Allan Somensi <allansomensidev@proton.me>"]
 documentation = "https://github.com/allansomensi/openhx"
 homepage = "https://github.com/allansomensi/openhx"
