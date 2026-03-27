@@ -1,6 +1,16 @@
-# 🎛️ OpenHX
+<div align="center">
+  <img width="190"  alt="OpenHX Logo" src="https://github.com/user-attachments/assets/4b159aec-5a66-4afd-8f5d-e68fb9c1eab0" />
 
-> An unofficial, open-source alternative to HX Edit — built in Rust, runs everywhere.
+  # OpenHX
+
+  <p><em>An unofficial, open-source alternative to HX Edit — built in Rust, runs everywhere.</em></p>
+
+  [![Built with Rust](https://img.shields.io/badge/built_with-Rust-dca282.svg)](https://www.rust-lang.org/)
+  [![Version](https://img.shields.io/github/v/release/allansomensi/openhx?color=blue&label=version)](https://github.com/allansomensi/openhx/releases)
+  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+  <br/>
+</div>
 
 OpenHX is a community-driven tool for managing Line 6 HX series devices (HX Stomp, HX Stomp XL, and Helix family) from any operating system. It ships as both a **command-line interface** and a **graphical interface**, with no dependency on HX Edit or any official Line 6 software.
 
@@ -46,8 +56,6 @@ OpenHX was built to close that gap.
 ## 📥 Installation
 
 You can find pre-built binaries, installers (`.msi`), and automated installation scripts (`.ps1`, `.sh`) on the **Releases** page.
-
-[![Download Latest Release](https://img.shields.io/github/v/release/allansomensi/openhx?label=Download%20Latest%20Version&style=for-the-badge&color=blue)](https://github.com/allansomensi/openhx/releases/latest)
 
 > **Windows Users:** If you encounter a "SmartScreen" warning when running the MSI, click **"More info"** → **"Run anyway"**. This is normal for unsigned open-source tools.
 
