@@ -5,4 +5,5 @@ pub enum Message {
     DeviceDetected(String, Vec<Preset>),
     DeviceDisconnected,
     ConnectionError(String),
+    PresetSelected(u8),
 }

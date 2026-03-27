@@ -15,3 +15,5 @@ openhx_core = { workspace = true }
 openhx_i18n = { workspace = true }
 iced = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

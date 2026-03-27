@@ -44,6 +44,10 @@ rmpv = "1.0"
 tokio = { version = "1", features = ["full"] }
 thiserror = "2.0"
 
+# Debug
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
 # i18n
 i18n-embed = { version = "0.16", features = [
     "fluent-system",

@@ -7,6 +7,7 @@ pub struct App {
     pub device_name: String,
     pub presets: Vec<Preset>,
     pub error_log: Option<String>,
+    pub selected_preset: Option<u8>,
 }
 
 impl Default for App {
@@ -16,6 +17,7 @@ impl Default for App {
             device_name: String::new(),
             presets: Vec::new(),
             error_log: None,
+            selected_preset: None,
         }
     }
 }

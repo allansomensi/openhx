@@ -1,5 +1,5 @@
 use crate::{app::App, message::Message, state::AppState};
-use iced::widget::{column, container, scrollable, text};
+use iced::widget::{button, column, container, scrollable, text};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_i18n::fl;
 
@@ -39,10 +39,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
             let presets_list = app.presets.iter().enumerate().fold(
                 column![].spacing(2).width(Length::Fill),
                 |col, (i, preset)| {
+                    let is_selected = app.selected_preset == Some(preset.index);
                     let label_text = format!("{:03}   {}", preset.index, preset.name);
                     let item_text = text(label_text).size(14);
 
-                    let item = container(item_text)
+                    let btn = button(item_text)
                         .width(Length::Fill)
                         .padding(Padding {
                             top: 3.0,
@@ -50,6 +51,15 @@ pub fn view(app: &App) -> Element<'_, Message> {
                             bottom: 3.0,
                             left: 10.0,
                         })
+                        .on_press(Message::PresetSelected(preset.index))
+                        .style(if is_selected {
+                            button::primary
+                        } else {
+                            button::text
+                        });
+
+                    let item = container(btn)
+                        .width(Length::Fill)
                         .style(move |_theme: &Theme| container::Style {
                             background: Some(if i % 2 == 0 {
                                 Color::from_rgba(0.5, 0.5, 0.5, 0.1).into()
