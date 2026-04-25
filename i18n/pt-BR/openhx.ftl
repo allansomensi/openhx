@@ -1,5 +1,5 @@
 waiting-title = Aguardando dispositivo...
-waiting-subtitle = Conecte seu HX Stomp ou HX Stomp XL via USB.
+waiting-subtitle = Conecte seu dispositivo Line 6 compatível via USB.
 connected-header = Conectado: { $device_name }
 error-title = Erro de Comunicação
 error-unknown = Erro desconhecido

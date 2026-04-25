@@ -48,7 +48,7 @@ OpenHX was built to close that gap.
 | HX Stomp | 🚧 Planned |
 | HX Stomp XL | ✅ Validated |
 | HX Effects | 🚧 Planned |
-| Helix Floor | 🚧 Planned |
+| Helix Floor | 🟡 Partial (active setlist only — other 7 setlists not yet reachable) |
 | Helix LT | 🚧 Planned |
 
 ---

@@ -50,6 +50,7 @@ pub enum PresetAction {
 pub enum DeviceArg {
     HxStomp,
     HxStompXl,
+    HelixFloor,
 }
 
 impl From<DeviceArg> for KnownDevice {
@@ -57,6 +58,7 @@ impl From<DeviceArg> for KnownDevice {
         match arg {
             DeviceArg::HxStomp => KnownDevice::HxStomp,
             DeviceArg::HxStompXl => KnownDevice::HxStompXl,
+            DeviceArg::HelixFloor => KnownDevice::HelixFloor,
         }
     }
 }
@@ -78,5 +80,8 @@ mod tests {
 
         let dev_xl: KnownDevice = DeviceArg::HxStompXl.into();
         assert_eq!(dev_xl, KnownDevice::HxStompXl);
+
+        let dev_helix: KnownDevice = DeviceArg::HelixFloor.into();
+        assert_eq!(dev_helix, KnownDevice::HelixFloor);
     }
 }
