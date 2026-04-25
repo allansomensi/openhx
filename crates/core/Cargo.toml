@@ -15,6 +15,7 @@ openhx_i18n = { workspace = true }
 rusb = { workspace = true }
 rmpv = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 cargo-husky = { workspace = true }
