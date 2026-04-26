@@ -15,12 +15,16 @@ pub const MAX_CHUNK_SIZE: usize = 272;
 /// Number of leading header bytes to skip before the MessagePack payload.
 pub const RESPONSE_HEADER_SIZE: usize = 16;
 
-// Common header layout for Line 6 proprietary USB handshake:
-//   [0..4]   – LE u32 length field
-//   [4..8]   – protocol version marker (01 10 EF 03)
-//   [8..10]  – LE u16 sequence number
-//   [10]     – command byte
-//   [11..]   – payload
+// Common header layout for Line 6 proprietary USB packets:
+//   [0..4]   – framing / length prefix (low byte at [0])
+//   [4..8]   – protocol routing field; host→device emits `01 10 EF 03`,
+//              device→host echoes it byte-pair-swapped as `EF 03 01 10`
+//   [8..10]  – sequence number, big-endian u16. The high byte at [8] is
+//              always 0 in observed traffic, so [9] is the effective u8
+//              seq (see `SEQ_BYTE_OFFSET` in `client.rs`).
+//   [10..12] – command, big-endian u16. [10] is always 0; [11] is the
+//              effective cmd byte (e.g. 0x04 = open, 0x08 = chunk req).
+//   [12..]   – payload
 
 /// Channel handshake (`magic = 0x0028`).
 /// Re-synchronises the device's session state.

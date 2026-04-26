@@ -1,6 +1,6 @@
 use crate::{app::App, message::Message, state::AppState};
 use iced::Task;
-use openhx_core::connect_client;
+use openhx_core::{HxError, reset_shared_device, with_device};
 use tracing::{debug, error, info};
 
 pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
@@ -18,6 +18,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
         }
         Message::DeviceDisconnected => {
             info!("Device disconnected");
+            reset_shared_device();
             app.state = AppState::Waiting;
             app.device_name.clear();
             app.presets.clear();
@@ -34,14 +35,15 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             info!("Preset selected: {index:03}");
             app.selected_preset = Some(index);
 
-            tokio::task::spawn_blocking(move || match connect_client(None) {
-                Ok(client) => {
-                    if let Err(e) = client.select_preset(0, index) {
-                        error!("Failed to select preset on device: {e}");
+            tokio::task::spawn_blocking(move || {
+                match with_device(|client| client.select_preset(0, index)) {
+                    Ok(()) => {}
+                    Err(HxError::DeviceNotFound) => {
+                        error!("Cannot select preset {index:03}: device not connected");
                     }
-                }
-                Err(e) => {
-                    error!("Could not connect to device: {e}");
+                    Err(e) => {
+                        error!("Failed to select preset {index:03}: {e}");
+                    }
                 }
             });
 
