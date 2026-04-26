@@ -215,7 +215,7 @@ mod tests {
         let presets = client.read_presets().unwrap();
         for (expected, preset) in presets.iter().enumerate() {
             assert_eq!(
-                preset.index, expected as u16,
+                preset.index, expected as u8,
                 "preset at position {expected} has wrong index"
             );
         }
