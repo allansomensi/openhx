@@ -28,7 +28,7 @@ pub fn connect_client(
     #[cfg(feature = "mock")]
     {
         let _ = device;
-        return Ok(Box::new(MockClient::new()));
+        Ok(Box::new(MockClient::new()))
     }
 
     #[cfg(not(feature = "mock"))]
