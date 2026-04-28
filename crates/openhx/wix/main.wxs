@@ -69,7 +69,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='A cross-platform Rust GUI and CLI for controlling the Line 6 HX Stomp.'
+            Description='A cross-platform Rust GUI and CLI for controlling Line 6 HX and Helix devices.'
             Manufacturer='Allan Somensi'
             InstallerVersion='450'
             Languages='1033'
