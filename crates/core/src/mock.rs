@@ -2,7 +2,7 @@ use crate::{
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
-    models::Preset,
+    models::{Preset, Setlist},
 };
 
 /// A simulated HX Stomp XL.
@@ -38,30 +38,34 @@ impl DeviceClient for MockClient {
         Ok(presets)
     }
 
+    fn list_setlists(&self) -> Result<Vec<Setlist>, HxError> {
+        Ok((0..self.profile().setlist_count)
+            .map(|i| Setlist::new(i, format!("MOCK {}", i + 1)))
+            .collect())
+    }
+
+    fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
+        self.profile().validate_setlist(setlist)?;
+        self.read_presets()
+    }
+
     /// Simulates a preset selection command.
     ///
     /// Validates that `bank` and `preset` fall within the range supported by
     /// the HX Stomp XL (4 banks × 32 presets) and returns `Ok(())`. No I/O
     /// is performed.
-    fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError> {
-        const MAX_BANKS: u8 = 4;
-        const MAX_PRESETS_PER_BANK: u8 = 32;
+    fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
+        let profile = self.profile();
+        profile.validate_setlist(setlist)?;
 
-        if bank >= MAX_BANKS {
-            return Err(HxError::protocol(format!(
-                "bank {bank} out of range (0–{})",
-                MAX_BANKS - 1
-            )));
-        }
-
-        if preset >= MAX_PRESETS_PER_BANK {
+        if u16::from(preset) >= profile.preset_count {
             return Err(HxError::protocol(format!(
                 "preset {preset} out of range (0–{})",
-                MAX_PRESETS_PER_BANK - 1
+                profile.preset_count - 1
             )));
         }
 
-        eprintln!("[mock] select_preset(bank={bank}, preset={preset}) — OK");
+        eprintln!("[mock] select_preset(setlist={setlist}, preset={preset}) — OK");
 
         Ok(())
     }
@@ -241,21 +245,41 @@ mod tests {
     }
 
     #[test]
-    fn mock_select_preset_valid_range() {
+    fn mock_list_setlists_matches_profile_count() {
         let client = MockClient::new();
-        assert!(client.select_preset(0, 0).is_ok());
-        assert!(client.select_preset(3, 31).is_ok());
+        let setlists = client.list_setlists().unwrap();
+        assert_eq!(setlists.len() as u8, client.profile().setlist_count);
+        assert_eq!(setlists[0].index, 0);
     }
 
     #[test]
-    fn mock_select_preset_bank_out_of_range() {
+    fn mock_read_setlist_presets_accepts_setlist_zero() {
         let client = MockClient::new();
-        assert!(client.select_preset(4, 0).is_err());
+        assert_eq!(client.read_setlist_presets(0).unwrap().len(), 128);
+    }
+
+    #[test]
+    fn mock_read_setlist_presets_rejects_other_setlists() {
+        let client = MockClient::new();
+        assert!(client.read_setlist_presets(1).is_err());
+    }
+
+    #[test]
+    fn mock_select_preset_valid_range() {
+        let client = MockClient::new();
+        assert!(client.select_preset(0, 0).is_ok());
+        assert!(client.select_preset(0, 127).is_ok());
+    }
+
+    #[test]
+    fn mock_select_preset_setlist_out_of_range() {
+        let client = MockClient::new();
+        assert!(client.select_preset(1, 0).is_err());
     }
 
     #[test]
     fn mock_select_preset_preset_out_of_range() {
         let client = MockClient::new();
-        assert!(client.select_preset(0, 32).is_err());
+        assert!(client.select_preset(0, 128).is_err());
     }
 }

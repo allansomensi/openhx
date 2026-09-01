@@ -21,15 +21,22 @@ pub fn usb_poll() -> impl futures::Stream<Item = Message> {
             let result = tokio::task::spawn_blocking(|| {
                 with_device(|client| {
                     let name = client.profile().name.to_string();
+                    let setlists = client.list_setlists()?;
                     let presets = client.read_presets()?;
-                    Ok((name, presets))
+                    Ok((name, setlists, presets))
                 })
             })
             .await;
 
             match result {
-                Ok(Ok((name, presets))) => {
-                    let _ = output.send(Message::DeviceDetected(name, presets)).await;
+                Ok(Ok((name, setlists, presets))) => {
+                    let _ = output
+                        .send(Message::DeviceDetected {
+                            name,
+                            setlists,
+                            presets,
+                        })
+                        .await;
                     break;
                 }
                 Ok(Err(HxError::DeviceNotFound)) => continue,

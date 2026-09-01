@@ -1,10 +1,14 @@
 use crate::{message::Message, state::AppState, update, view, worker};
 use iced::{Subscription, Task};
-use openhx_core::Preset;
+use openhx_core::{Preset, Setlist};
 
 pub struct App {
     pub state: AppState,
     pub device_name: String,
+    /// The connected device's setlists, named as on the device.
+    pub setlists: Vec<Setlist>,
+    /// Setlist whose presets are currently shown.
+    pub setlist: u8,
     pub presets: Vec<Preset>,
     pub error_log: Option<String>,
     pub selected_preset: Option<u8>,
@@ -15,6 +19,8 @@ impl Default for App {
         Self {
             state: AppState::Waiting,
             device_name: String::new(),
+            setlists: Vec::new(),
+            setlist: 0,
             presets: Vec::new(),
             error_log: None,
             selected_preset: None,

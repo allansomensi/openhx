@@ -1,9 +1,12 @@
-use super::{parser::parse_msgpack_stream, protocol::*};
+use super::{
+    parser::{parse_msgpack_stream, parse_setlists, response_payload},
+    protocol::*,
+};
 use crate::{
     client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::Preset,
+    models::{Preset, Setlist},
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -132,7 +135,7 @@ impl Client {
 
     /// Core retry loop for reading presets, extracted to avoid name collision
     /// with the [`DeviceClient`] trait method of the same name.
-    fn read_presets_impl(&self) -> Result<Vec<Preset>, HxError> {
+    fn read_presets_impl(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
         let timeout = Duration::from_millis(TIMEOUT_MS);
 
         for attempt in 0..MAX_INIT_RETRIES {
@@ -144,7 +147,7 @@ impl Client {
             // across calls on a cached client.
             self.drain_stale_data();
 
-            match self.run_session(timeout) {
+            match self.run_session(setlist, timeout) {
                 Ok(mut presets) => {
                     presets.sort_unstable_by_key(|p| p.index);
                     return Ok(presets);
@@ -163,9 +166,9 @@ impl Client {
         )))
     }
 
-    /// Core retry loop for selecting a preset, extracted to avoid name collision
+    /// Core retry loop for listing setlists, extracted to avoid name collision
     /// with the [`DeviceClient`] trait method of the same name.
-    fn select_preset_impl(&self, bank: u8, preset: u8) -> Result<(), HxError> {
+    fn list_setlists_impl(&self) -> Result<Vec<Setlist>, HxError> {
         let timeout = Duration::from_millis(TIMEOUT_MS);
 
         for attempt in 0..MAX_INIT_RETRIES {
@@ -174,7 +177,53 @@ impl Client {
             }
             self.drain_stale_data();
 
-            match self.run_select_session(bank, preset, timeout) {
+            match self.run_setlists_session(timeout) {
+                Ok(setlists) => return Ok(setlists),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Opens the presets resource and parses the setlist names from its reply.
+    ///
+    /// The device answers the open-presets command with its setlist table, so
+    /// this needs no packet beyond the ones a preset listing already sends.
+    fn run_setlists_session(&self, timeout: Duration) -> Result<Vec<Setlist>, HxError> {
+        let mut buf = vec![0u8; 512];
+
+        self.session_init(&mut buf, timeout)?;
+
+        self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
+        let n = self.read_for_seq(OPEN_PRESETS[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+
+        let setlists = parse_setlists(response_payload(&buf, n)?)?;
+
+        self.drain_stale_data();
+
+        Ok(setlists)
+    }
+
+    /// Core retry loop for selecting a preset, extracted to avoid name collision
+    /// with the [`DeviceClient`] trait method of the same name.
+    fn select_preset_impl(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+            }
+            self.drain_stale_data();
+
+            match self.run_select_session(setlist, preset, timeout) {
                 Ok(_) => return Ok(()),
                 Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
                     continue;
@@ -191,14 +240,19 @@ impl Client {
     }
 
     /// Internal routine to handle the session cycle specifically for changing a preset.
-    fn run_select_session(&self, bank: u8, preset: u8, timeout: Duration) -> Result<(), HxError> {
+    fn run_select_session(
+        &self,
+        setlist: u8,
+        preset: u8,
+        timeout: Duration,
+    ) -> Result<(), HxError> {
         let mut buf = vec![0u8; 512];
 
         self.session_init(&mut buf, timeout)?;
 
         // Send the Select Preset command (after handshake, the next seq is 0x06)
         let seq = 0x06;
-        let request = build_select_preset_request(seq, bank, preset);
+        let request = build_select_preset_request(seq, setlist, preset);
 
         self.handle.write_bulk(EP_OUT, &request, timeout)?;
         self.read_for_seq(seq, &mut buf, timeout)?;
@@ -210,8 +264,8 @@ impl Client {
         Ok(())
     }
 
-    /// Executes a single, complete preset extraction session.
-    fn run_session(&self, timeout: Duration) -> Result<Vec<Preset>, HxError> {
+    /// Executes a single, complete preset extraction session for `setlist`.
+    fn run_session(&self, setlist: u8, timeout: Duration) -> Result<Vec<Preset>, HxError> {
         let mut buf = vec![0u8; 512];
         let mut raw_stream: Vec<u8> = Vec::with_capacity(4_096);
 
@@ -221,9 +275,11 @@ impl Client {
         self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
         self.read_for_seq(OPEN_PRESETS[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
 
-        // Phase 2: start stream (first response carries payload)
-        self.handle.write_bulk(EP_OUT, OPEN_STREAM, timeout)?;
-        let n = self.read_for_seq(OPEN_STREAM[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+        // Phase 2: start stream for the requested setlist (first response
+        // carries payload)
+        let open_stream = build_open_stream_request(OPEN_STREAM_SEQ, setlist);
+        self.handle.write_bulk(EP_OUT, &open_stream, timeout)?;
+        let n = self.read_for_seq(OPEN_STREAM_SEQ, &mut buf, timeout)?;
         self.collect_payload(&mut raw_stream, &buf, n);
 
         // Phase 3: paginate until end-of-stream
@@ -248,7 +304,7 @@ impl Client {
             seq = seq.wrapping_add(1);
         }
 
-        parse_msgpack_stream(&raw_stream, self.profile.preset_count)
+        parse_msgpack_stream(&raw_stream, self.profile.preset_count, setlist)
     }
 
     /// Appends the MessagePack payload portion of a bulk IN response to `dest`.
@@ -392,12 +448,24 @@ impl DeviceClient for Client {
 
     #[inline]
     fn read_presets(&self) -> Result<Vec<Preset>, HxError> {
-        self.read_presets_impl()
+        self.read_presets_impl(0)
     }
 
     #[inline]
-    fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError> {
-        self.select_preset_impl(bank, preset)
+    fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
+        self.profile.validate_setlist(setlist)?;
+        self.read_presets_impl(setlist)
+    }
+
+    #[inline]
+    fn list_setlists(&self) -> Result<Vec<Setlist>, HxError> {
+        self.list_setlists_impl()
+    }
+
+    #[inline]
+    fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
+        self.profile.validate_setlist(setlist)?;
+        self.select_preset_impl(setlist, preset)
     }
 }
 

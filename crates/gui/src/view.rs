@@ -1,7 +1,35 @@
 use crate::{app::App, message::Message, state::AppState};
-use iced::widget::{button, column, container, scrollable, text};
+use iced::widget::{button, column, container, pick_list, scrollable, text};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
+use openhx_core::Setlist;
 use openhx_i18n::fl;
+
+/// One entry of the setlist picker, showing the name stored on the device.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetlistChoice {
+    pub index: u8,
+    pub name: String,
+}
+
+impl From<&Setlist> for SetlistChoice {
+    fn from(setlist: &Setlist) -> Self {
+        Self {
+            index: setlist.index,
+            name: setlist.name.clone(),
+        }
+    }
+}
+
+impl std::fmt::Display for SetlistChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.name.is_empty() {
+            let number = u32::from(self.index) + 1;
+            write!(f, "{}", fl!("setlist-option", number = number))
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
+}
 
 pub fn view(app: &App) -> Element<'_, Message> {
     let content = match app.state {
@@ -92,7 +120,24 @@ pub fn view(app: &App) -> Element<'_, Message> {
 
             let list_title = text("Presets").size(18);
 
-            let sidebar = column![list_title, list_container].spacing(10);
+            // Only multi-setlist devices (Helix family) get a picker.
+            let setlist_picker = (app.setlists.len() > 1).then(|| {
+                let choices: Vec<SetlistChoice> =
+                    app.setlists.iter().map(SetlistChoice::from).collect();
+                let selected = choices.iter().find(|c| c.index == app.setlist).cloned();
+
+                pick_list(choices, selected, |choice| {
+                    Message::SetlistChosen(choice.index)
+                })
+                .width(Length::Fixed(215.0))
+                .text_size(14)
+            });
+
+            let mut sidebar = column![list_title].spacing(10);
+            if let Some(picker) = setlist_picker {
+                sidebar = sidebar.push(picker);
+            }
+            let sidebar = sidebar.push(list_container);
 
             column![header, sidebar]
                 .spacing(20)

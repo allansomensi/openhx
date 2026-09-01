@@ -2,8 +2,8 @@ use crate::args::DeviceArg;
 use openhx_core::{connect_client, device::KnownDevice, error::HxError};
 use openhx_i18n::fl;
 
-/// Executes the `preset list` CLI command.
-pub fn execute(device: Option<DeviceArg>, setlist: u8) -> Result<(), HxError> {
+/// Executes the `setlist list` CLI command.
+pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
     #[cfg(feature = "mock")]
     eprintln!("{}", fl!("mock-mode-active"));
 
@@ -27,17 +27,13 @@ pub fn execute(device: Option<DeviceArg>, setlist: u8) -> Result<(), HxError> {
         fl!("cli-connected-to", profile = client.profile().to_string())
     );
 
-    if client.profile().setlist_count > 1 {
-        println!("{}", fl!("cli-reading-setlist", setlist = setlist));
+    let setlists = client.list_setlists()?;
+
+    for setlist in &setlists {
+        println!("{setlist}");
     }
 
-    let presets = client.read_setlist_presets(setlist)?;
-
-    for preset in &presets {
-        println!("{preset}");
-    }
-
-    println!("\n{}", fl!("cli-total-presets", count = presets.len()));
+    println!("\n{}", fl!("cli-total-setlists", count = setlists.len()));
 
     Ok(())
 }
