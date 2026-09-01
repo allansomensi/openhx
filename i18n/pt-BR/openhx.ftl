@@ -1,6 +1,7 @@
 waiting-title = Aguardando dispositivo...
 waiting-subtitle = Conecte seu dispositivo Line 6 compatível via USB.
 connected-header = Conectado: { $device_name }
+setlist-option = Setlist { $number }
 error-title = Erro de Comunicação
 error-unknown = Erro desconhecido
 

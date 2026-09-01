@@ -5,6 +5,10 @@ use openhx_core::Preset;
 pub struct App {
     pub state: AppState,
     pub device_name: String,
+    /// Number of setlists the connected device holds.
+    pub setlist_count: u8,
+    /// Setlist whose presets are currently shown.
+    pub setlist: u8,
     pub presets: Vec<Preset>,
     pub error_log: Option<String>,
     pub selected_preset: Option<u8>,
@@ -15,6 +19,8 @@ impl Default for App {
         Self {
             state: AppState::Waiting,
             device_name: String::new(),
+            setlist_count: 1,
+            setlist: 0,
             presets: Vec::new(),
             error_log: None,
             selected_preset: None,
