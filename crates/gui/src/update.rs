@@ -7,9 +7,15 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
     debug!("Received message: {message:?}");
 
     match message {
-        Message::DeviceDetected(name, presets) => {
-            info!("Device connected successfully: {name}");
+        Message::DeviceDetected {
+            name,
+            setlist_count,
+            presets,
+        } => {
+            info!("Device connected successfully: {name} ({setlist_count} setlist(s))");
             app.device_name = name;
+            app.setlist_count = setlist_count;
+            app.setlist = 0;
             app.presets = presets;
             app.state = AppState::Connected;
             app.error_log = None;
@@ -21,8 +27,41 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             reset_shared_device();
             app.state = AppState::Waiting;
             app.device_name.clear();
+            app.setlist_count = 1;
+            app.setlist = 0;
             app.presets.clear();
             app.selected_preset = None;
+            Task::none()
+        }
+        Message::SetlistChosen(setlist) => {
+            if setlist == app.setlist {
+                return Task::none();
+            }
+            info!("Loading setlist {setlist}");
+
+            Task::perform(
+                async move {
+                    tokio::task::spawn_blocking(move || {
+                        with_device(|client| client.read_setlist_presets(setlist))
+                    })
+                    .await
+                    .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
+                },
+                move |result| match result {
+                    Ok(presets) => Message::SetlistLoaded(setlist, presets),
+                    Err(e) => Message::SetlistLoadFailed(setlist, e.to_string()),
+                },
+            )
+        }
+        Message::SetlistLoaded(setlist, presets) => {
+            info!("Setlist {setlist} loaded ({} presets)", presets.len());
+            app.setlist = setlist;
+            app.presets = presets;
+            app.selected_preset = None;
+            Task::none()
+        }
+        Message::SetlistLoadFailed(setlist, err) => {
+            error!("Failed to load setlist {setlist}: {err}");
             Task::none()
         }
         Message::ConnectionError(err) => {
@@ -32,11 +71,12 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::PresetSelected(index) => {
-            info!("Preset selected: {index:03}");
+            let setlist = app.setlist;
+            info!("Preset selected: setlist {setlist}, slot {index:03}");
             app.selected_preset = Some(index);
 
             tokio::task::spawn_blocking(move || {
-                match with_device(|client| client.select_preset(0, index)) {
+                match with_device(|client| client.select_preset(setlist, index)) {
                     Ok(()) => {}
                     Err(HxError::DeviceNotFound) => {
                         error!("Cannot select preset {index:03}: device not connected");

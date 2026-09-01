@@ -2,7 +2,7 @@
 
 This directory documents the USB bulk transfer protocol used to communicate with **Line 6 HX series devices** (reverse-engineered from live USB captures). All sequences have been validated against a fully working implementation.
 
-> **Scope:** This documentation covers the application-level protocol layered on top of USB bulk transfers. It is device-agnostic where possible, but all byte sequences were captured from an **HX Stomp XL**.
+> **Scope:** This documentation covers the application-level protocol layered on top of USB bulk transfers. It is device-agnostic where possible; the byte sequences were captured from an **HX Stomp XL** and the setlist extensions were validated on a **Helix Floor**.
 
 ---
 
@@ -21,7 +21,8 @@ This directory documents the USB bulk transfer protocol used to communicate with
 
 | Document | Description |
 |---|---|
-| [presets/list.md](./presets/list.md) | Enumerate all 128 preset names
+| [presets/list.md](./presets/list.md) | Enumerate the preset names of a setlist |
+| [presets/select.md](./presets/select.md) | Make a preset the device's active preset |
 | [presets/data-format.md](./presets/data-format.md) | MessagePack payload format and preset data structure |
 
 ### Reference
@@ -66,3 +67,4 @@ The device will not accept new commands until the previous response has been rea
 | Device | VID | PID | Status |
 |---|---|---|---|
 | HX Stomp XL | `0x0E41` | `0x4253` | ✅ Validated |
+| Helix Floor | `0x0E41` | `0x4248` | ✅ Validated — preset listing for all 8 setlists, preset selection |
