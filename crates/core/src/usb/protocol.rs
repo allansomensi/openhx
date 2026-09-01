@@ -15,6 +15,16 @@ pub const MAX_CHUNK_SIZE: usize = 272;
 /// Number of leading header bytes to skip before the MessagePack payload.
 pub const RESPONSE_HEADER_SIZE: usize = 16;
 
+/// Offset of the little-endian `u32` payload length within a response's inner
+/// header.
+pub const RESPONSE_LEN_OFFSET: usize = 20;
+
+/// Offset of the MessagePack payload in the first packet of a response.
+///
+/// A response carries the 16-byte transport header followed by an 8-byte inner
+/// header whose last four bytes are the payload length.
+pub const RESPONSE_PAYLOAD_OFFSET: usize = 24;
+
 // Common header layout for Line 6 proprietary USB packets:
 //   [0..4]   – framing / length prefix (low byte at [0])
 //   [4..8]   – protocol routing field; host→device emits `01 10 EF 03`,

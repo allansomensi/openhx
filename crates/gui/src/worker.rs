@@ -20,21 +20,20 @@ pub fn usb_poll() -> impl futures::Stream<Item = Message> {
 
             let result = tokio::task::spawn_blocking(|| {
                 with_device(|client| {
-                    let profile = client.profile();
-                    let name = profile.name.to_string();
-                    let setlist_count = profile.setlist_count;
+                    let name = client.profile().name.to_string();
+                    let setlists = client.list_setlists()?;
                     let presets = client.read_presets()?;
-                    Ok((name, setlist_count, presets))
+                    Ok((name, setlists, presets))
                 })
             })
             .await;
 
             match result {
-                Ok(Ok((name, setlist_count, presets))) => {
+                Ok(Ok((name, setlists, presets))) => {
                     let _ = output
                         .send(Message::DeviceDetected {
                             name,
-                            setlist_count,
+                            setlists,
                             presets,
                         })
                         .await;

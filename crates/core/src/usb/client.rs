@@ -1,9 +1,12 @@
-use super::{parser::parse_msgpack_stream, protocol::*};
+use super::{
+    parser::{parse_msgpack_stream, parse_setlists, response_payload},
+    protocol::*,
+};
 use crate::{
     client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::Preset,
+    models::{Preset, Setlist},
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -161,6 +164,52 @@ impl Client {
             device = self.profile.name,
             attempts = MAX_INIT_RETRIES
         )))
+    }
+
+    /// Core retry loop for listing setlists, extracted to avoid name collision
+    /// with the [`DeviceClient`] trait method of the same name.
+    fn list_setlists_impl(&self) -> Result<Vec<Setlist>, HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+            }
+            self.drain_stale_data();
+
+            match self.run_setlists_session(timeout) {
+                Ok(setlists) => return Ok(setlists),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Opens the presets resource and parses the setlist names from its reply.
+    ///
+    /// The device answers the open-presets command with its setlist table, so
+    /// this needs no packet beyond the ones a preset listing already sends.
+    fn run_setlists_session(&self, timeout: Duration) -> Result<Vec<Setlist>, HxError> {
+        let mut buf = vec![0u8; 512];
+
+        self.session_init(&mut buf, timeout)?;
+
+        self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
+        let n = self.read_for_seq(OPEN_PRESETS[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+
+        let setlists = parse_setlists(response_payload(&buf, n)?)?;
+
+        self.drain_stale_data();
+
+        Ok(setlists)
     }
 
     /// Core retry loop for selecting a preset, extracted to avoid name collision
@@ -406,6 +455,11 @@ impl DeviceClient for Client {
     fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
         self.profile.validate_setlist(setlist)?;
         self.read_presets_impl(setlist)
+    }
+
+    #[inline]
+    fn list_setlists(&self) -> Result<Vec<Setlist>, HxError> {
+        self.list_setlists_impl()
     }
 
     #[inline]

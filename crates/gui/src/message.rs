@@ -1,10 +1,10 @@
-use openhx_core::Preset;
+use openhx_core::{Preset, Setlist};
 
 #[derive(Debug, Clone)]
 pub enum Message {
     DeviceDetected {
         name: String,
-        setlist_count: u8,
+        setlists: Vec<Setlist>,
         presets: Vec<Preset>,
     },
     DeviceDisconnected,

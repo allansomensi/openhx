@@ -28,6 +28,7 @@ OpenHX was built to close that gap.
 
 > ⚠️ OpenHX is in early development. Features marked 🚧 are planned but not yet implemented.
 
+- ✅ List setlists (with the names stored on the device)
 - ✅ List presets (per setlist on Helix-family devices)
 - ✅ Select preset (by setlist and slot)
 - 🚧 Rename preset
@@ -82,6 +83,9 @@ The binary will be at `target/release/openhx`.
 ```bash
 # List all presets of the first setlist
 openhx-cli preset list
+
+# List the device's setlists
+openhx-cli setlist list
 
 # List the presets of another setlist (Helix-family devices hold 8, indexed 0–7)
 openhx-cli preset list --setlist 2

@@ -21,6 +21,9 @@ pub fn run() -> iced::Result {
     iced::application(App::new, App::update, App::view)
         .title(|_app: &App| "OpenHX".to_string())
         .theme(|_app: &App| iced::Theme::Dark)
+        // swash mis-rasterises the MS core Arial.TTF that fontdb picks as the
+        // sans-serif default when present; Liberation Sans is metrically identical
+        .default_font(iced::Font::with_name("Liberation Sans"))
         .subscription(|app: &App| app.subscription())
         .centered()
         .window_size((800.0, 600.0))
