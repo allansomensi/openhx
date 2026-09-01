@@ -34,10 +34,28 @@ Parse the MessagePack value at `msgpack_data` using any standard MessagePack lib
 ```
 Array[128]
 └── [i] fixmap(1)                          // outer map: 1 entry
-      └── key:   integer (preset index)    // u16, range 0–127
+      └── key:   integer (preset index)    // u16, device-global (see below)
           value: map                       // inner map: preset fields
                 └── key 109: str           // preset name (null-terminated)
 ```
+
+---
+
+## Preset Indices
+
+The outer-map key is the **device-global** preset index, not the position within the setlist:
+
+```
+index = setlist × preset_count + slot
+```
+
+| Setlist | Index range (128-preset device) | MessagePack encoding |
+|---|---|---|
+| 0 | `0`–`127` | positive fixint |
+| 1 | `128`–`255` | `uint8` (`CC xx`) |
+| 2–7 | `256`–`1023` | `uint16` (`CD xx xx`) |
+
+Single-setlist devices only ever return `0`–`preset_count − 1`. Decode the key as an unsigned integer of any width and subtract `setlist × preset_count` to obtain the slot; treat an index outside the requested setlist's range as a protocol error.
 
 ---
 
@@ -56,11 +74,12 @@ Other keys may be present in the inner map and should be ignored for the purpose
 ```
 for each item in root_array:
     outer_map  = item as map
-    index      = outer_map[0].key as u16
+    index      = outer_map[0].key as u16          // device-global
+    slot       = index - setlist * preset_count    // 0..preset_count
     inner_map  = outer_map[0].value as map
     raw_name   = inner_map[key=109] as string
     clean_name = raw_name.trim_end_matches('\0')
-    presets.push({ index, name: clean_name })
+    presets.push({ slot, name: clean_name })
 ```
 
 ---

@@ -27,6 +27,15 @@ pub enum PresetAction {
     List {
         #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
         device: Option<DeviceArg>,
+
+        #[arg(
+            short,
+            long,
+            default_value_t = 0,
+            value_name = "SETLIST",
+            help = fl!("cli-setlist-help")
+        )]
+        setlist: u8,
     },
 
     #[command(
@@ -37,8 +46,15 @@ pub enum PresetAction {
         #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
         device: Option<DeviceArg>,
 
-        #[arg(short, long, default_value_t = 0)]
-        bank: u8,
+        #[arg(
+            short,
+            long,
+            alias = "bank",
+            default_value_t = 0,
+            value_name = "SETLIST",
+            help = fl!("cli-setlist-help")
+        )]
+        setlist: u8,
 
         #[arg(short, long)]
         preset: u8,
