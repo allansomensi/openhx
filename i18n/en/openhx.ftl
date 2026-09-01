@@ -1,6 +1,7 @@
 waiting-title = Waiting for device...
 waiting-subtitle = Connect your supported Line 6 device via USB.
 connected-header = Connected: { $device_name }
+setlist-option = Setlist { $number }
 error-title = Communication Error
 error-unknown = Unknown error
 

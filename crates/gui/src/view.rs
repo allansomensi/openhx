@@ -1,7 +1,18 @@
 use crate::{app::App, message::Message, state::AppState};
-use iced::widget::{button, column, container, scrollable, text};
+use iced::widget::{button, column, container, pick_list, scrollable, text};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_i18n::fl;
+
+/// One entry of the setlist picker, displayed as a 1-based label.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SetlistChoice(pub u8);
+
+impl std::fmt::Display for SetlistChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let number = u32::from(self.0) + 1;
+        write!(f, "{}", fl!("setlist-option", number = number))
+    }
+}
 
 pub fn view(app: &App) -> Element<'_, Message> {
     let content = match app.state {
@@ -92,7 +103,22 @@ pub fn view(app: &App) -> Element<'_, Message> {
 
             let list_title = text("Presets").size(18);
 
-            let sidebar = column![list_title, list_container].spacing(10);
+            // Only multi-setlist devices (Helix family) get a picker.
+            let setlist_picker = (app.setlist_count > 1).then(|| {
+                let choices: Vec<SetlistChoice> =
+                    (0..app.setlist_count).map(SetlistChoice).collect();
+                pick_list(choices, Some(SetlistChoice(app.setlist)), |choice| {
+                    Message::SetlistChosen(choice.0)
+                })
+                .width(Length::Fixed(215.0))
+                .text_size(14)
+            });
+
+            let mut sidebar = column![list_title].spacing(10);
+            if let Some(picker) = setlist_picker {
+                sidebar = sidebar.push(picker);
+            }
+            let sidebar = sidebar.push(list_container);
 
             column![header, sidebar]
                 .spacing(20)
