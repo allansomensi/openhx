@@ -5,6 +5,7 @@ pub const PROFILE_HX_STOMP: DeviceProfile = DeviceProfile {
     vendor_id: 0x0E41,
     product_id: 0x4246,
     preset_count: 126,
+    setlist_count: 1,
 };
 
 pub const PROFILE_HX_STOMP_XL: DeviceProfile = DeviceProfile {
@@ -12,6 +13,7 @@ pub const PROFILE_HX_STOMP_XL: DeviceProfile = DeviceProfile {
     vendor_id: 0x0E41,
     product_id: 0x4253,
     preset_count: 128,
+    setlist_count: 1,
 };
 
 // Helix Floor streams the active setlist's 128 presets per session; the device
@@ -22,6 +24,7 @@ pub const PROFILE_HELIX_FLOOR: DeviceProfile = DeviceProfile {
     vendor_id: 0x0E41,
     product_id: 0x4248,
     preset_count: 128,
+    setlist_count: 8,
 };
 
 pub const DEVICE_CATALOG: &[DeviceProfile] =
@@ -117,6 +120,16 @@ mod tests {
         assert_eq!(
             PROFILE_HELIX_FLOOR.preset_count, 128,
             "Helix Floor should have 128 presets"
+        );
+    }
+
+    #[test]
+    fn catalog_entries_have_correct_setlist_counts() {
+        assert_eq!(PROFILE_HX_STOMP.setlist_count, 1);
+        assert_eq!(PROFILE_HX_STOMP_XL.setlist_count, 1);
+        assert_eq!(
+            PROFILE_HELIX_FLOOR.setlist_count, 8,
+            "Helix Floor holds 8 setlists"
         );
     }
 

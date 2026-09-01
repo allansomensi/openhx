@@ -1,6 +1,8 @@
 # Listing Presets
 
-This document describes how to enumerate all 128 preset names from the device.
+This document describes how to enumerate the preset names of one setlist from the device.
+
+HX Stomp-family devices hold a single setlist (index `0`). Helix-family devices hold eight setlists (`0`–`7`), each with 128 presets; the setlist to read is selected in Phase 2. See [Setlists](#setlists) below.
 
 > **Prerequisites:** Complete the [session handshake](../session-handshake.md) before executing any phase described here. The sequence numbers below assume a fresh session where `seq` starts at `0x06`.
 
@@ -44,15 +46,31 @@ Send this packet and perform one bulk read. **The response is not parsed.**
 
 ## Phase 2 — Start Paged Stream
 
-Instructs the device to begin sending preset data in pages (`cmd=0x0C`, `seq=0x07`).
+Instructs the device to begin sending preset data in pages (`cmd=0x0C`, `seq=0x07`). The packet carries the **setlist index** to stream.
 
 ```
 1D 00 00 18 01 10 EF 03 00 07 00 0C 38 10 00 00
 01 00 02 00 0D 00 00 00 83 66 CD 03 EA 64 01 65
-82 6B 00 65 02 00 00 00
+82 6B SS 65 02 00 00 00
 ```
 
 **Length:** 40 bytes
+
+| Byte(s) | Value | Description |
+|---|---|---|
+| 0–23 | fixed | Header, routing, `seq=0x07`, `cmd=0x0C`, inner resource header (payload length `0x0D`) |
+| 24–36 | MessagePack | `{102: 1002, 100: 1, 101: {107: SS, 101: 2}}` |
+| 34 | `SS` | **Setlist index** (`0` on single-setlist devices) |
+| 37–39 | `00 00 00` | Padding to a 4-byte boundary |
+
+```rust
+fn build_open_stream_request(seq: u8, setlist: u8) -> [u8; 40] {
+    [0x1D, 0x00, 0x00, 0x18, 0x01, 0x10, 0xEF, 0x03, 0x00, seq,  0x00, 0x0C,
+     0x38, 0x10, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x0D, 0x00, 0x00, 0x00,
+     0x83, 0x66, 0xCD, 0x03, 0xEA, 0x64, 0x01, 0x65, 0x82, 0x6B, setlist,
+     0x65, 0x02, 0x00, 0x00, 0x00]
+}
+```
 
 ### Response
 
@@ -146,6 +164,21 @@ A chunk response is considered the **final chunk** when the number of bytes read
 | `n <= 16` | Empty final packet — no payload bytes |
 
 After the loop ends, the reassembly buffer contains the complete raw MessagePack stream. Parse it using [presets/data-format.md](./data-format.md).
+
+---
+
+## Setlists
+
+The setlist index sent in Phase 2 selects which setlist the device streams. Every other packet in the operation is identical for all setlists.
+
+| Device family | Setlists | Valid index |
+|---|---|---|
+| HX Stomp, HX Stomp XL | 1 | `0` |
+| Helix Floor (and, presumably, Helix LT / Rack) | 8 | `0`–`7` |
+
+Preset indices in the returned stream are **device-global**: `index = setlist × preset_count + slot`. Setlist `1` of a 128-preset device therefore returns indices `128`–`255`, setlist `2` returns `256`–`383`, and so on. Convert them to slots before presenting them to users — see [data-format.md](./data-format.md#preset-indices).
+
+Validated on a Helix Floor for all eight setlists.
 
 ---
 

@@ -28,8 +28,8 @@ OpenHX was built to close that gap.
 
 > ⚠️ OpenHX is in early development. Features marked 🚧 are planned but not yet implemented.
 
-- ✅ List presets
-- ✅ Select preset
+- ✅ List presets (per setlist on Helix-family devices)
+- ✅ Select preset (by setlist and slot)
 - 🚧 Rename preset
 - 🚧 Import and export presets (`.hlx` files)
 - 🚧 Reorder blocks
@@ -48,7 +48,7 @@ OpenHX was built to close that gap.
 | HX Stomp | ✅ Validated |
 | HX Stomp XL | ✅ Validated |
 | HX Effects | 🚧 Planned |
-| Helix Floor | 🟡 Partial (active setlist only — other 7 setlists not yet reachable) |
+| Helix Floor | ✅ Validated (all 8 setlists) |
 | Helix LT | 🚧 Planned |
 
 ---
@@ -80,11 +80,14 @@ The binary will be at `target/release/openhx`.
 ### CLI
 
 ```bash
-# List all presets
+# List all presets of the first setlist
 openhx-cli preset list
 
-# Select a specific preset by its index and bank
-openhx-cli preset select --preset <PRESET> --bank <BANK>
+# List the presets of another setlist (Helix-family devices hold 8, indexed 0–7)
+openhx-cli preset list --setlist 2
+
+# Select a preset by setlist and slot (slot 0–127 within the setlist)
+openhx-cli preset select --setlist <SETLIST> --preset <PRESET>
 ```
 
 ### GUI

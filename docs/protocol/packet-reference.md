@@ -27,7 +27,7 @@ All 5 packets are followed by a bulk IN read. Responses are discarded.
 | Step | Name | Direction | Length | seq | cmd | Notes |
 |---|---|---|---|---|---|---|
 | 6 | OPEN_PRESETS | OUT | 36 | `0x06` | `0x04` | Prepares preset resource for streaming |
-| 7 | OPEN_STREAM | OUT | 40 | `0x07` | `0x0C` | Starts paged stream; response contains chunk #0 |
+| 7 | OPEN_STREAM | OUT | 40 | `0x07` | `0x0C` | Dynamic: byte 34 = setlist index. Starts paged stream; response contains chunk #0 |
 | 8+ | CHUNK_REQUEST | OUT | 16 | `0x08`+ | `0x08` | Dynamic: `seq` and `offset` increment per chunk |
 
 All OUT packets are immediately followed by a bulk IN read.
@@ -38,6 +38,32 @@ All OUT packets are immediately followed by a bulk IN read.
 |---|---|---|---|
 | `seq` | byte 9 | `0x08` | `+1` (wraps at `0xFF`) |
 | `offset` | bytes 12–15 | `0x00001138` (LE) | `+0x0100` per full chunk |
+
+---
+
+## Preset Selection
+
+> Documented in: [presets/select.md](./presets/select.md)
+
+| Step | Name | Direction | Length | seq | cmd | Notes |
+|---|---|---|---|---|---|---|
+| 6 | SELECT_PRESET | OUT | 40 | `0x06` | `0x04` | Dynamic: byte 34 = setlist, byte 36 = preset slot. Replaces OPEN_PRESETS in a select session |
+
+The ACK is followed by an unsolicited burst of notification packets that must be drained.
+
+---
+
+## MessagePack Command Envelope
+
+Every command packet that carries a payload (`SESSION_OPEN_2`, `OPEN_PRESETS`, `OPEN_STREAM`, `SELECT_PRESET`) wraps a small MessagePack map with the same three keys:
+
+| Key | Meaning | Observed values |
+|---|---|---|
+| `102` | Transaction ID | `1000`, `1001`, `1002`, `1010` — echoed by the device |
+| `100` | Opcode | `254` (session open), `0` (open presets), `1` (start stream), `20` (select preset) |
+| `101` | Arguments | `nil`, `{}`, or a map (`107` = setlist, `108` = preset slot, `101` = `2` for the preset stream) |
+
+The payload sits at bytes 24.. of the packet; bytes 20–23 carry its length, and the packet is padded to a 4-byte boundary.
 
 ---
 
