@@ -16,6 +16,24 @@ pub enum Commands {
         #[command(subcommand)]
         action: PresetAction,
     },
+
+    #[command(about = fl!("cli-setlist-category-about"))]
+    Setlist {
+        #[command(subcommand)]
+        action: SetlistAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SetlistAction {
+    #[command(
+        about = fl!("cli-list-setlists-about"),
+        long_about = fl!("cli-list-setlists-long")
+    )]
+    List {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+    },
 }
 
 #[derive(Subcommand)]

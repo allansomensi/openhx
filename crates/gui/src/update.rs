@@ -9,12 +9,15 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
     match message {
         Message::DeviceDetected {
             name,
-            setlist_count,
+            setlists,
             presets,
         } => {
-            info!("Device connected successfully: {name} ({setlist_count} setlist(s))");
+            info!(
+                "Device connected successfully: {name} ({} setlist(s))",
+                setlists.len()
+            );
             app.device_name = name;
-            app.setlist_count = setlist_count;
+            app.setlists = setlists;
             app.setlist = 0;
             app.presets = presets;
             app.state = AppState::Connected;
@@ -27,7 +30,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             reset_shared_device();
             app.state = AppState::Waiting;
             app.device_name.clear();
-            app.setlist_count = 1;
+            app.setlists.clear();
             app.setlist = 0;
             app.presets.clear();
             app.selected_preset = None;

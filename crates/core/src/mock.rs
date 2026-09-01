@@ -2,7 +2,7 @@ use crate::{
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
-    models::Preset,
+    models::{Preset, Setlist},
 };
 
 /// A simulated HX Stomp XL.
@@ -36,6 +36,12 @@ impl DeviceClient for MockClient {
             .collect();
 
         Ok(presets)
+    }
+
+    fn list_setlists(&self) -> Result<Vec<Setlist>, HxError> {
+        Ok((0..self.profile().setlist_count)
+            .map(|i| Setlist::new(i, format!("MOCK {}", i + 1)))
+            .collect())
     }
 
     fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
@@ -236,6 +242,14 @@ mod tests {
     fn mock_profile_is_hx_stomp_xl() {
         let client = MockClient::new();
         assert_eq!(client.profile().name, "HX Stomp XL");
+    }
+
+    #[test]
+    fn mock_list_setlists_matches_profile_count() {
+        let client = MockClient::new();
+        let setlists = client.list_setlists().unwrap();
+        assert_eq!(setlists.len() as u8, client.profile().setlist_count);
+        assert_eq!(setlists[0].index, 0);
     }
 
     #[test]

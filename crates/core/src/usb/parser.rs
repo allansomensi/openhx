@@ -1,10 +1,119 @@
-use crate::{error::HxError, models::Preset};
+use crate::{
+    error::HxError,
+    models::{Preset, Setlist},
+    usb::protocol::{RESPONSE_LEN_OFFSET, RESPONSE_PAYLOAD_OFFSET},
+};
 use openhx_i18n::fl;
 use rmpv::decode::read_value;
 use std::io::Cursor;
 
 /// Integer key used by Line 6's MessagePack encoding for the preset name field.
 const MSGPACK_KEY_PRESET_NAME: u64 = 109;
+
+/// Response envelope key holding the command's status code (`0` on success).
+const MSGPACK_KEY_STATUS: u64 = 103;
+
+/// Response envelope key holding the command's result value.
+const MSGPACK_KEY_RESULT: u64 = 104;
+
+/// Extracts the MessagePack payload from the first packet of a response.
+///
+/// Responses are framed as a 16-byte transport header, an 8-byte inner header
+/// whose last four bytes are the payload length, then the payload itself.
+pub fn response_payload(buf: &[u8], n: usize) -> Result<&[u8], HxError> {
+    if n < RESPONSE_PAYLOAD_OFFSET {
+        return Err(HxError::protocol(fl!(
+            "msgpack-response-too-short",
+            len = n
+        )));
+    }
+
+    let len_bytes: [u8; 4] = buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET]
+        .try_into()
+        .map_err(|_| HxError::protocol(fl!("msgpack-response-too-short", len = n)))?;
+    let len = u32::from_le_bytes(len_bytes) as usize;
+
+    let end = RESPONSE_PAYLOAD_OFFSET
+        .checked_add(len)
+        .filter(|end| *end <= n)
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-response-truncated", len = len, got = n)))?;
+
+    Ok(&buf[RESPONSE_PAYLOAD_OFFSET..end])
+}
+
+/// Decodes a response envelope (`{102: txn, 103: status, 104: result}`) and
+/// returns its result value, rejecting a non-zero status.
+fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
+    let mut cursor = Cursor::new(payload);
+    let root = read_value(&mut cursor)?;
+
+    let map = root
+        .as_map()
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-response-not-map")))?;
+
+    let lookup = |key: u64| {
+        map.iter()
+            .find(|(k, _)| k.as_u64() == Some(key))
+            .map(|(_, v)| v)
+    };
+
+    match lookup(MSGPACK_KEY_STATUS).and_then(rmpv::Value::as_u64) {
+        Some(0) | None => {}
+        Some(status) => {
+            return Err(HxError::protocol(fl!(
+                "msgpack-response-status",
+                status = status
+            )));
+        }
+    }
+
+    Ok(lookup(MSGPACK_KEY_RESULT)
+        .cloned()
+        .unwrap_or(rmpv::Value::Nil))
+}
+
+/// Parses the reply to the open-presets command into the device's setlists.
+///
+/// The result is an array of one-entry maps, each `{setlist_index: name}`.
+/// Single-setlist devices report one entry.
+pub fn parse_setlists(payload: &[u8]) -> Result<Vec<Setlist>, HxError> {
+    let result = response_result(payload)?;
+
+    let items = result
+        .as_array()
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-setlists-not-array")))?;
+
+    let mut setlists: Vec<Setlist> = items
+        .iter()
+        .map(|item| {
+            let map = item
+                .as_map()
+                .ok_or_else(|| HxError::protocol(fl!("msgpack-setlist-not-map")))?;
+            let (key, value) = map
+                .first()
+                .ok_or_else(|| HxError::protocol(fl!("msgpack-setlist-map-empty")))?;
+
+            let index = key
+                .as_u64()
+                .and_then(|i| u8::try_from(i).ok())
+                .ok_or_else(|| HxError::protocol(fl!("msgpack-setlist-index-not-int")))?;
+
+            let name = value
+                .as_str()
+                .ok_or_else(|| {
+                    HxError::protocol(fl!("msgpack-setlist-name-invalid", index = index))
+                })?
+                .trim_end_matches('\0')
+                .trim_end()
+                .to_owned();
+
+            Ok(Setlist::new(index, name))
+        })
+        .collect::<Result<_, HxError>>()?;
+
+    setlists.sort_unstable_by_key(|s| s.index);
+    Ok(setlists)
+}
 
 /// Parses a raw MessagePack payload received from the device into a list of Presets.
 ///
@@ -143,6 +252,54 @@ mod tests {
     }
 
     // parse_msgpack_stream tests
+
+    /// Reply payload to the open-presets command, captured from a Helix Floor.
+    const SETLIST_REPLY: &[u8] = b"\x83\x66\xCD\x03\xE9\x67\x00\x68\x98\
+\x81\xCD\x00\x00\xAAFACTORY 1\x00\
+\x81\xCD\x00\x01\xAAFACTORY 2\x00\
+\x81\xCD\x00\x02\xA7USER 1\x00\
+\x81\xCD\x00\x03\xA7USER 2\x00\
+\x81\xCD\x00\x04\xA7USER 3\x00\
+\x81\xCD\x00\x05\xA7USER 4\x00\
+\x81\xCD\x00\x06\xA7USER 5\x00\
+\x81\xCD\x00\x07\xAATEMPLATES\x00";
+
+    #[test]
+    fn setlists_parse_from_captured_reply() {
+        let setlists = parse_setlists(SETLIST_REPLY).unwrap();
+
+        assert_eq!(setlists.len(), 8);
+        assert_eq!(setlists[0], Setlist::new(0, "FACTORY 1"));
+        assert_eq!(setlists[2], Setlist::new(2, "USER 1"));
+        assert_eq!(setlists[7], Setlist::new(7, "TEMPLATES"));
+    }
+
+    #[test]
+    fn setlists_reject_non_zero_status() {
+        // {102: 1001, 103: 5, 104: []}
+        let payload = b"\x83\x66\xCD\x03\xE9\x67\x05\x68\x90";
+        let err = parse_setlists(payload).unwrap_err();
+        assert!(matches!(err, HxError::Protocol(_)));
+    }
+
+    #[test]
+    fn response_payload_slices_by_declared_length() {
+        let mut buf = vec![0u8; 32];
+        buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET].copy_from_slice(&4u32.to_le_bytes());
+        buf[RESPONSE_PAYLOAD_OFFSET..RESPONSE_PAYLOAD_OFFSET + 4]
+            .copy_from_slice(b"\x01\x02\x03\x04");
+
+        assert_eq!(response_payload(&buf, 32).unwrap(), b"\x01\x02\x03\x04");
+    }
+
+    #[test]
+    fn response_payload_rejects_truncated_response() {
+        let mut buf = vec![0u8; 32];
+        buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET].copy_from_slice(&999u32.to_le_bytes());
+
+        assert!(response_payload(&buf, 32).is_err());
+        assert!(response_payload(&buf, 8).is_err());
+    }
 
     #[test]
     fn stream_multiple_presets_round_trip() {

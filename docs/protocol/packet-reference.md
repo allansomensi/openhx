@@ -26,7 +26,7 @@ All 5 packets are followed by a bulk IN read. Responses are discarded.
 
 | Step | Name | Direction | Length | seq | cmd | Notes |
 |---|---|---|---|---|---|---|
-| 6 | OPEN_PRESETS | OUT | 36 | `0x06` | `0x04` | Prepares preset resource for streaming |
+| 6 | OPEN_PRESETS | OUT | 36 | `0x06` | `0x04` | Prepares preset resource for streaming; the reply carries the setlist table (see [presets/setlists.md](./presets/setlists.md)) |
 | 7 | OPEN_STREAM | OUT | 40 | `0x07` | `0x0C` | Dynamic: byte 34 = setlist index. Starts paged stream; response contains chunk #0 |
 | 8+ | CHUNK_REQUEST | OUT | 16 | `0x08`+ | `0x08` | Dynamic: `seq` and `offset` increment per chunk |
 
@@ -62,6 +62,14 @@ Every command packet that carries a payload (`SESSION_OPEN_2`, `OPEN_PRESETS`, `
 | `102` | Transaction ID | `1000`, `1001`, `1002`, `1010` — echoed by the device |
 | `100` | Opcode | `254` (session open), `0` (open presets), `1` (start stream), `20` (select preset) |
 | `101` | Arguments | `nil`, `{}`, or a map (`107` = setlist, `108` = preset slot, `101` = `2` for the preset stream) |
+
+Replies use the same envelope shape with different keys:
+
+| Key | Meaning |
+|---|---|
+| `102` | Transaction ID, echoed from the request |
+| `103` | Status — `0` on success |
+| `104` | Result value (`nil` for commands with no return value) |
 
 The payload sits at bytes 24.. of the packet; bytes 20–23 carry its length, and the packet is padded to a 4-byte boundary.
 
