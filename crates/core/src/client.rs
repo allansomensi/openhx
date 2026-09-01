@@ -18,11 +18,18 @@ pub trait DeviceClient: Send {
     /// Reads all presets stored on the device and returns them sorted by index.
     fn read_presets(&self) -> Result<Vec<Preset>, HxError>;
 
+    /// Reads the preset names of one setlist.
+    ///
+    /// `setlist` is validated against [`DeviceProfile::setlist_count`];
+    /// single-setlist devices only accept `0`.
+    fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError>;
+
     /// Sends a preset selection command to the device.
     ///
     /// `bank` and `preset` are zero-indexed values whose valid range depends
     /// on the connected device model.
-    fn select_preset(&self, bank: u8, preset: u8) -> Result<(), HxError>;
+    /// Makes `preset` (a slot within `setlist`) the device's active preset.
+    fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError>;
 }
 
 /// Creates a [`DeviceClient`] for the given device, or auto-detects one.

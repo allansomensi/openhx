@@ -3,7 +3,7 @@ use openhx_core::{connect_client, device::KnownDevice, error::HxError};
 use openhx_i18n::fl;
 
 /// Executes the `preset list` CLI command.
-pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
+pub fn execute(device: Option<DeviceArg>, setlist: u8) -> Result<(), HxError> {
     #[cfg(feature = "mock")]
     eprintln!("{}", fl!("mock-mode-active"));
 
@@ -27,7 +27,11 @@ pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
         fl!("cli-connected-to", profile = client.profile().to_string())
     );
 
-    let presets = client.read_presets()?;
+    if client.profile().setlist_count > 1 {
+        println!("{}", fl!("cli-reading-setlist", setlist = setlist));
+    }
+
+    let presets = client.read_setlist_presets(setlist)?;
 
     for preset in &presets {
         println!("{preset}");

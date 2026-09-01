@@ -3,7 +3,7 @@ use openhx_core::{connect_client, device::KnownDevice, error::HxError};
 use openhx_i18n::fl;
 
 /// Executes the `preset select` CLI command.
-pub fn execute(device: Option<DeviceArg>, bank: u8, preset: u8) -> Result<(), HxError> {
+pub fn execute(device: Option<DeviceArg>, setlist: u8, preset: u8) -> Result<(), HxError> {
     #[cfg(feature = "mock")]
     eprintln!("{}", fl!("mock-mode-active"));
 
@@ -29,10 +29,10 @@ pub fn execute(device: Option<DeviceArg>, bank: u8, preset: u8) -> Result<(), Hx
 
     println!(
         "{}",
-        fl!("cli-selecting-preset", bank = bank, preset = preset)
+        fl!("cli-selecting-preset", setlist = setlist, preset = preset)
     );
 
-    client.select_preset(bank, preset)?;
+    client.select_preset(setlist, preset)?;
 
     println!("{}", fl!("cli-preset-selected-success"));
 

@@ -1,3 +1,6 @@
+use crate::error::HxError;
+use openhx_i18n::fl;
+
 /// Static metadata that fully describes a supported Line 6 device from the
 /// perspective of the USB transport and the preset-read protocol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -6,6 +9,9 @@ pub struct DeviceProfile {
     pub vendor_id: u16,
     pub product_id: u16,
     pub preset_count: u16,
+    /// Number of setlists the device holds. HX Stomp-family devices have a
+    /// single setlist; Helix-family devices hold eight.
+    pub setlist_count: u8,
 }
 
 impl DeviceProfile {
@@ -15,6 +21,21 @@ impl DeviceProfile {
     pub fn array_marker(&self) -> [u8; 3] {
         let [hi, lo] = self.preset_count.to_be_bytes();
         [0xDC, hi, lo]
+    }
+
+    /// Checks that `setlist` addresses one of this device's setlists.
+    pub fn validate_setlist(&self, setlist: u8) -> Result<(), HxError> {
+        if setlist < self.setlist_count {
+            Ok(())
+        } else {
+            Err(HxError::protocol(fl!(
+                "usb-setlist-out-of-range",
+                setlist = setlist,
+                device = self.name,
+                count = self.setlist_count,
+                max = self.setlist_count.saturating_sub(1)
+            )))
+        }
     }
 }
 
@@ -42,8 +63,37 @@ mod tests {
             vendor_id: 0x1234,
             product_id: 0x5678,
             preset_count: 258, // 0x0102 in hex
+            setlist_count: 1,
         };
         assert_eq!(profile.array_marker(), [0xDC, 0x01, 0x02]);
+    }
+
+    #[test]
+    fn validate_setlist_accepts_indices_below_count() {
+        let profile = DeviceProfile {
+            name: "Multi",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 128,
+            setlist_count: 8,
+        };
+        assert!(profile.validate_setlist(0).is_ok());
+        assert!(profile.validate_setlist(7).is_ok());
+    }
+
+    #[test]
+    fn validate_setlist_rejects_indices_at_or_above_count() {
+        let profile = DeviceProfile {
+            name: "Single",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 128,
+            setlist_count: 1,
+        };
+        assert!(matches!(
+            profile.validate_setlist(1),
+            Err(HxError::Protocol(_))
+        ));
     }
 
     #[test]
@@ -53,6 +103,7 @@ mod tests {
             vendor_id: 0x0E41,
             product_id: 0x4252,
             preset_count: 126,
+            setlist_count: 1,
         };
         assert_eq!(
             profile.to_string(),

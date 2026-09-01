@@ -12,9 +12,11 @@ cli-connecting-to = Conectando a { $device_name } …
 cli-probing-usb = Nenhum dispositivo especificado — verificando barramento USB por qualquer dispositivo Line 6 suportado...
 cli-connected-to = Conectado a: { $profile }
 cli-total-presets = Total: { $count } preset(s) lido(s).
+cli-setlist-help = Índice da setlist, a partir de 0. Apenas dispositivos da família Helix possuem mais de uma.
+cli-reading-setlist = Lendo setlist { $setlist }...
 cli-select-preset-about = Seleciona um preset específico no dispositivo
-cli-select-preset-long = Altera o preset ativo no dispositivo Line 6 conectado, informando os índices de banco e preset.
-cli-selecting-preset = Selecionando banco {$bank}, preset {$preset}...
+cli-select-preset-long = Altera o preset ativo no dispositivo Line 6 conectado, informando os índices de setlist e preset.
+cli-selecting-preset = Selecionando setlist { $setlist }, preset { $preset }...
 cli-preset-selected-success = Preset selecionado com sucesso!
 
 mock-mode-active = [mock] Rodando em modo simulado — hardware físico não é necessário.
@@ -23,6 +25,7 @@ usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }
 usb-stream-offset-overflow = Estouro de offset do fluxo no payload USB.
+usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
 
 msgpack-root-not-array = O valor raiz do MessagePack não é um array.
@@ -31,3 +34,4 @@ msgpack-preset-map-empty = O mapa do item do preset está vazio.
 msgpack-preset-index-not-int = O índice do preset não é um número inteiro.
 msgpack-preset-inner-not-map = Preset { $index }: o mapa de propriedades não é um mapa.
 msgpack-preset-name-not-found = Preset { $index }: chave de nome não encontrada ou inválida.
+msgpack-preset-index-out-of-setlist = O índice de preset { $index } não pertence à setlist { $setlist }.
