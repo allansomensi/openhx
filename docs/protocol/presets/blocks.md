@@ -186,7 +186,7 @@ A parameter map is `{2: count, 3: …, 4: [values]}`. Values are in the model's 
 
 Model IDs map to model names and categories; openhx ships that table in `crates/core/src/blocks/catalog.rs`.
 
-Parameter names, types, ranges and display units are defined per model in `crates/core/src/blocks/definitions.rs`. The value list holds a model's regular parameters in the order HX Edit lists them, followed by a cab's mic selector. The enabled state is key `10`, and the stereo variant is a separate model; some parameters exist in the stereo variant only. This is verified against HX Stomp captures for a distortion, an amp and a cab. openhx uses a definition only when its parameter count equals the number of values the device sent.
+Parameter names, types, ranges and display units are defined per model in `crates/core/src/blocks/definitions.rs`. The value list holds a model's regular parameters in the order HX Edit lists them, with two exceptions. First, a tempo sync switch (`TempoSync1`, bool) is stored directly before its note value (`SyncSelect1`, uint). Second, a cab's mic selector or a delay's or reverb's trails switch comes last. The enabled state is key `10`, and the stereo variant is a separate model; some parameters exist in the stereo variant only. This is verified against HX Stomp captures for a distortion, an amp, a cab, a dynamic, an EQ, two delays and a reverb. openhx uses a definition only when the device sent exactly one value of the defined type for each parameter.
 
 ### Example
 

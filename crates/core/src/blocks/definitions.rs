@@ -1,8 +1,10 @@
 //! Parameter definitions of the block models, as HX Edit shows them.
 //!
 //! Each table lists a model's parameters in the order the device stores
-//! their values. Mono and stereo variants of a model can differ: some
-//! parameters exist in the stereo variant only.
+//! their values: the regular parameters (tempo sync right before its note
+//! value), then a cab's mic selector or a delay's or reverb's trails switch.
+//! Mono and stereo variants of a model can differ: some parameters exist in
+//! the stereo variant only.
 
 use super::{ParamDef, ParamKind::*};
 
@@ -830,8 +832,9 @@ static P69: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "frequency", kind: Float { min: 0.1, max: 8.0, default: 0.3 } },
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.22 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P70: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_300", kind: Float { min: 0.02, max: 0.3, default: 0.238 } },
@@ -840,8 +843,9 @@ static P70: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P71: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.5 } },
@@ -857,6 +861,7 @@ static P71: &[ParamDef] = &[
     ParamDef { id: "DynType", name: "Dynamic Type", display: "dyn_type", kind: Bool { default: false } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P72: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_500", kind: Float { min: 0.02, max: 0.5, default: 0.375 } },
@@ -867,8 +872,9 @@ static P72: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Noise", name: "Noise", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.1 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P73: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.362 } },
@@ -880,16 +886,18 @@ static P73: &[ParamDef] = &[
     ParamDef { id: "ModulationMode", name: "Modulation Mode", display: "delay_mod_mode", kind: Int { min: 0, max: 2, default: 1 } },
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.022 } },
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.49 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P74: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.6 } },
     ParamDef { id: "Feedback", name: "Feedback", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P75: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.45 } },
@@ -908,6 +916,7 @@ static P75: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P76: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_2000", kind: Float { min: 0.0, max: 2.0, default: 0.507 } },
@@ -916,8 +925,9 @@ static P76: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P77: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_1800", kind: Float { min: 0.02, max: 1.8, default: 0.5 } },
@@ -931,8 +941,9 @@ static P77: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.22 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P78: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_300", kind: Float { min: 0.02, max: 0.3, default: 0.238 } },
@@ -942,8 +953,9 @@ static P78: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P79: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.5 } },
@@ -960,6 +972,7 @@ static P79: &[ParamDef] = &[
     ParamDef { id: "DynType", name: "Dynamic Type", display: "dyn_type", kind: Bool { default: false } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P80: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_500", kind: Float { min: 0.02, max: 0.5, default: 0.375 } },
@@ -972,8 +985,9 @@ static P80: &[ParamDef] = &[
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.272 } },
     ParamDef { id: "Noise", name: "Noise", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.1 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P81: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_2000", kind: Float { min: 0.0, max: 2.0, default: 0.75 } },
@@ -994,8 +1008,9 @@ static P81: &[ParamDef] = &[
     ParamDef { id: "PanRootVoice", name: "Root Pan", display: "pan", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "LowCut", name: "Low Cut", display: "mod_low_cut", kind: Float { min: 19.9, max: 500.0, default: 19.9 } },
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 20100.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P82: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.538 } },
@@ -1009,8 +1024,9 @@ static P82: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.022 } },
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.49 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P83: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 1.0 } },
@@ -1036,8 +1052,9 @@ static P83: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.58 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P84: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 1.0 } },
@@ -1064,8 +1081,9 @@ static P84: &[ParamDef] = &[
     ParamDef { id: "Tap6Delay", name: "Tap 6 Scale", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Tap6Pan", name: "Tap 6 Pan", display: "pan", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Tap6Level", name: "Tap 6 Level", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P85: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.6 } },
@@ -1078,6 +1096,7 @@ static P85: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 8900.0 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P86: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.8 } },
@@ -1085,8 +1104,9 @@ static P86: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Scale", name: "Scale", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.75 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P87: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.45 } },
@@ -1107,6 +1127,7 @@ static P87: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P88: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_2000", kind: Float { min: 0.0, max: 2.0, default: 0.507 } },
@@ -1117,8 +1138,9 @@ static P88: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P89: &[ParamDef] = &[
     ParamDef { id: "Fuzz", name: "Fuzz", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.9 } },
@@ -1285,6 +1307,7 @@ static P113: &[ParamDef] = &[
     ParamDef { id: "Send", name: "Send", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Return", name: "Return", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P114: &[ParamDef] = &[
     ParamDef { id: "Index", name: "IR Select", display: "ir_select", kind: Int { min: 1, max: 128, default: 1 } },
@@ -1301,10 +1324,10 @@ static P115: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync (Chorus)", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync (Vibrato)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync (Vibrato)", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync (Vibrato)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P116: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.25 } },
@@ -1314,8 +1337,8 @@ static P116: &[ParamDef] = &[
     ParamDef { id: "Tone", name: "Tone", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P117: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.43 } },
@@ -1325,8 +1348,8 @@ static P117: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P118: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.16 } },
@@ -1336,8 +1359,8 @@ static P118: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P119: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
@@ -1348,15 +1371,15 @@ static P119: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P120: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.19 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P121: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.29 } },
@@ -1365,8 +1388,8 @@ static P121: &[ParamDef] = &[
     ParamDef { id: "LampBias", name: "Lamp Bias", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P122: &[ParamDef] = &[
     ParamDef { id: "Frequency", name: "Frequency", display: "frequency", kind: Float { min: 5.0, max: 4000.0, default: 1280.0 } },
@@ -1377,23 +1400,23 @@ static P122: &[ParamDef] = &[
     ParamDef { id: "LFOShape", name: "LFO Shape", display: "lfo_shape", kind: Int { min: 0, max: 5, default: 2 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.67 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 4.5 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P123: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.3 } },
     ParamDef { id: "Intensity", name: "Intensity", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.73 } },
     ParamDef { id: "Mode", name: "Mode", display: "tremolo_mode", kind: Bool { default: false } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P124: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.66 } },
     ParamDef { id: "Intensity", name: "Intensity", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.67 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P125: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.632 } },
@@ -1403,8 +1426,8 @@ static P125: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 3.0 } },
     ParamDef { id: "RiseTimeSwitch", name: "Rise Time Switch", display: "off_on", kind: Bool { default: true } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P126: &[ParamDef] = &[
     ParamDef { id: "ChorusIntensity", name: "Chorus Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.57 } },
@@ -1416,10 +1439,10 @@ static P126: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync (Chorus)", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync (Vibrato)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync (Vibrato)", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync (Vibrato)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P127: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.25 } },
@@ -1430,8 +1453,8 @@ static P127: &[ParamDef] = &[
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P128: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.33 } },
@@ -1446,8 +1469,8 @@ static P128: &[ParamDef] = &[
     ParamDef { id: "Mode", name: "Mode", display: "stereo_mode", kind: Bool { default: true } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P129: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.43 } },
@@ -1458,8 +1481,8 @@ static P129: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P130: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.16 } },
@@ -1470,8 +1493,8 @@ static P130: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P131: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
@@ -1483,16 +1506,16 @@ static P131: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P132: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.19 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P133: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.29 } },
@@ -1502,8 +1525,8 @@ static P133: &[ParamDef] = &[
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.25 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P134: &[ParamDef] = &[
     ParamDef { id: "Shape", name: "Shape", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -1530,10 +1553,10 @@ static P135: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: -5.7 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P136: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "fast_slow", kind: Bool { default: true } },
@@ -1545,10 +1568,10 @@ static P136: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: -6.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync 1", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync 1", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync 1", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P137: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "fast_slow", kind: Bool { default: true } },
@@ -1560,10 +1583,10 @@ static P137: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P138: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.3 } },
@@ -1571,16 +1594,16 @@ static P138: &[ParamDef] = &[
     ParamDef { id: "Mode", name: "Mode", display: "tremolo_mode", kind: Bool { default: false } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P139: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.66 } },
     ParamDef { id: "Intensity", name: "Intensity", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.67 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P140: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.632 } },
@@ -1591,8 +1614,8 @@ static P140: &[ParamDef] = &[
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.554 } },
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 3.0 } },
     ParamDef { id: "RiseTimeSwitch", name: "Rise Time Switch", display: "off_on", kind: Bool { default: true } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P141: &[ParamDef] = &[
     ParamDef { id: "Pedal", name: "Pedal Position", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -2079,6 +2102,7 @@ static P189: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 5000.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P190: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.47 } },
@@ -2087,6 +2111,7 @@ static P190: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 5400.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P191: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.49 } },
@@ -2095,6 +2120,7 @@ static P191: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 6600.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P192: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.59 } },
@@ -2103,6 +2129,7 @@ static P192: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 6100.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P193: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
@@ -2111,6 +2138,7 @@ static P193: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 5000.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P194: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.68 } },
@@ -2119,6 +2147,7 @@ static P194: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 2800.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P195: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.72 } },
@@ -2127,12 +2156,14 @@ static P195: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 86.0, max: 20100.0, default: 9760.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P196: &[ParamDef] = &[
     ParamDef { id: "Dwell", name: "Dwell", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Condition", name: "Condition", display: "condition", kind: Int { min: 0, max: 2, default: 0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 1.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P197: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -2141,6 +2172,7 @@ static P197: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 5600.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.33 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P198: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
@@ -2149,6 +2181,7 @@ static P198: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 3700.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P199: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.34 } },
@@ -2157,6 +2190,7 @@ static P199: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 4100.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.4 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P200: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.52 } },
@@ -2165,6 +2199,7 @@ static P200: &[ParamDef] = &[
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 9800.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.44 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P201: &[ParamDef] = &[
     ParamDef { id: "Gain", name: "Gain", display: "volume", kind: Float { min: -120.0, max: 12.0, default: 0.0 } },
@@ -2252,8 +2287,9 @@ static P214: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.022 } },
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "ModulationMode", name: "Mod Mode", display: "delay_mod_mode", kind: Int { min: 0, max: 2, default: 0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P215: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_2000", kind: Float { min: 0.0, max: 2.0, default: 1.0 } },
@@ -2266,8 +2302,9 @@ static P215: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "ModulationMode", name: "Mod Mode", display: "delay_mod_mode", kind: Int { min: 0, max: 2, default: 0 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P216: &[ParamDef] = &[
     ParamDef { id: "Left Time", name: "Left Time", display: "time_ms_0_2000", kind: Float { min: 0.0, max: 2.0, default: 0.375 } },
@@ -2283,10 +2320,11 @@ static P216: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "ModulationMode", name: "Mode", display: "delay_mod_mode", kind: Int { min: 0, max: 2, default: 1 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Left Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 9 } },
     ParamDef { id: "TempoSync1", name: "Left Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Right Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 8 } },
+    ParamDef { id: "SyncSelect1", name: "Left Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 9 } },
     ParamDef { id: "TempoSync2", name: "Right Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Right Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 8 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P217: &[ParamDef] = &[
     ParamDef { id: "Gain", name: "Gain", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.67 } },
@@ -2316,8 +2354,8 @@ static P219: &[ParamDef] = &[
     ParamDef { id: "WaveShape", name: "Wave Shape", display: "wave_shape", kind: Int { min: 0, max: 6, default: 3 } },
     ParamDef { id: "DutyCycle", name: "DutyCycle", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P220: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 3.0 } },
@@ -2326,8 +2364,8 @@ static P220: &[ParamDef] = &[
     ParamDef { id: "DutyCycle", name: "DutyCycle", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P221: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "frequency", kind: Float { min: 0.0, max: 10.0, default: 0.2 } },
@@ -2338,8 +2376,8 @@ static P221: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Stages", name: "Stages", display: "integer_slider", kind: Int { min: 2, max: 16, default: 8 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P222: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "frequency", kind: Float { min: 0.0, max: 10.0, default: 0.2 } },
@@ -2351,8 +2389,8 @@ static P222: &[ParamDef] = &[
     ParamDef { id: "Stages", name: "Stages", display: "integer_slider", kind: Int { min: 2, max: 16, default: 8 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P223: &[ParamDef] = &[
     ParamDef { id: "Interval1", name: "Interval", display: "integer_slider_signed", kind: Int { min: -24, max: 24, default: 7 } },
@@ -2433,8 +2471,8 @@ static P229: &[ParamDef] = &[
     ParamDef { id: "Env Lag", name: "Env Lag", display: "time_ms_env_lag", kind: Float { min: 0.0, max: 0.1, default: 0.1 } },
     ParamDef { id: "Env Input", name: "Env Input", display: "volume_eq", kind: Float { min: 0.0, max: 70.0, default: 70.0 } },
     ParamDef { id: "CV Decay", name: "CV Decay", display: "cv_delay", kind: Int { min: 0, max: 2, default: 2 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P230: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.044 } },
@@ -2450,8 +2488,8 @@ static P230: &[ParamDef] = &[
     ParamDef { id: "Env Lag", name: "Env Lag", display: "time_ms_env_lag", kind: Float { min: 0.0, max: 0.1, default: 0.1 } },
     ParamDef { id: "Env Input", name: "Env Input", display: "volume_eq", kind: Float { min: 0.0, max: 70.0, default: 70.0 } },
     ParamDef { id: "CV Decay", name: "CV Decay", display: "cv_delay", kind: Int { min: 0, max: 2, default: 1 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P231: &[ParamDef] = &[
     ParamDef { id: "Ch1Drive", name: "Ch1 Drive", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.55 } },
@@ -2634,8 +2672,8 @@ static P243: &[ParamDef] = &[
     ParamDef { id: "TrebFreq", name: "Treb Freq", display: "frequency", kind: Float { min: 100.0, max: 10000.0, default: 700.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P244: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 5.0 } },
@@ -2647,8 +2685,8 @@ static P244: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P245: &[ParamDef] = &[
     ParamDef { id: "Gain", name: "Gain", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
@@ -2726,8 +2764,9 @@ static P251: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "Rate", name: "Rate", display: "frequency", kind: Float { min: 0.1, max: 8.0, default: 0.2 } },
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.2 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P252: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.5 } },
@@ -2739,8 +2778,9 @@ static P252: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "frequency", kind: Float { min: 0.1, max: 8.0, default: 0.2 } },
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.2 } },
     ParamDef { id: "Scale", name: "Scale", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.75 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P253: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.25 } },
@@ -2751,8 +2791,9 @@ static P253: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "LowCut", name: "Low Cut", display: "mod_low_cut", kind: Float { min: 19.9, max: 500.0, default: 19.9 } },
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 20100.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P254: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.176 } },
@@ -2764,8 +2805,9 @@ static P254: &[ParamDef] = &[
     ParamDef { id: "LowCut", name: "Low Cut", display: "mod_low_cut", kind: Float { min: 19.9, max: 500.0, default: 19.9 } },
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 20100.0 } },
     ParamDef { id: "Scale", name: "Scale", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P255: &[ParamDef] = &[
     ParamDef { id: "Drive", name: "Drive", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.6 } },
@@ -2888,8 +2930,9 @@ static P264: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.5 } },
     ParamDef { id: "Threshold", name: "Threshold", display: "volume", kind: Float { min: -96.0, max: 0.0, default: -60.0 } },
     ParamDef { id: "Attack", name: "Attack", display: "time_ms", kind: Float { min: 0.1, max: 5.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P265: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_20_1800", kind: Float { min: 0.02, max: 1.8, default: 0.5 } },
@@ -2905,8 +2948,9 @@ static P265: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
     ParamDef { id: "Threshold", name: "Threshold", display: "volume", kind: Float { min: -96.0, max: 0.0, default: -60.0 } },
     ParamDef { id: "Attack", name: "Attack", display: "time_ms", kind: Float { min: 0.1, max: 5.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P266: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_8000", kind: Float { min: 0.0, max: 8.0, default: 0.5 } },
@@ -2920,8 +2964,9 @@ static P266: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
     ParamDef { id: "Threshold", name: "Threshold", display: "volume", kind: Float { min: -96.0, max: 0.0, default: -60.0 } },
     ParamDef { id: "Attack", name: "Attack", display: "time_ms", kind: Float { min: 0.1, max: 5.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P267: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 0.5 } },
@@ -2936,8 +2981,9 @@ static P267: &[ParamDef] = &[
     ParamDef { id: "Headroom", name: "Headroom", display: "volume", kind: Float { min: -12.0, max: 12.0, default: 0.0 } },
     ParamDef { id: "Threshold", name: "Threshold", display: "volume", kind: Float { min: -96.0, max: 0.0, default: -60.0 } },
     ParamDef { id: "Attack", name: "Attack", display: "time_ms", kind: Float { min: 0.1, max: 5.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P268: &[ParamDef] = &[
     ParamDef { id: "Drive", name: "Drive", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.6 } },
@@ -3312,8 +3358,9 @@ static P296: &[ParamDef] = &[
     ParamDef { id: "FBTone", name: "FBTone", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.375 } },
     ParamDef { id: "Splice", name: "Splice", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P297: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_2000", kind: Float { min: 0.15, max: 2.0, default: 0.6 } },
@@ -3330,8 +3377,9 @@ static P297: &[ParamDef] = &[
     ParamDef { id: "Splice", name: "Splice", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P298: &[ParamDef] = &[
     ParamDef { id: "Width", name: "Width", display: "percent_width", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
@@ -3372,8 +3420,9 @@ static P301: &[ParamDef] = &[
     ParamDef { id: "Treble", name: "Treble", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.56 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.23 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P302: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.47 } },
@@ -3382,8 +3431,9 @@ static P302: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.84 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.25 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P303: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.392 } },
@@ -3392,8 +3442,9 @@ static P303: &[ParamDef] = &[
     ParamDef { id: "Swell", name: "Swell", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.81 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.44 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P304: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.751 } },
@@ -3402,8 +3453,9 @@ static P304: &[ParamDef] = &[
     ParamDef { id: "Treble", name: "Treble", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.6 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P305: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.437 } },
@@ -3412,8 +3464,9 @@ static P305: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.59 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.31 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P306: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.437 } },
@@ -3422,8 +3475,9 @@ static P306: &[ParamDef] = &[
     ParamDef { id: "Ducking", name: "Ducking", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.48 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.66 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P307: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.225 } },
@@ -3433,8 +3487,9 @@ static P307: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P308: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.403 } },
@@ -3443,8 +3498,9 @@ static P308: &[ParamDef] = &[
     ParamDef { id: "Res", name: "Res", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.66 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P309: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.554 } },
@@ -3453,8 +3509,9 @@ static P309: &[ParamDef] = &[
     ParamDef { id: "Heads 3-4", name: "Heads 3-4", display: "heads34", kind: Int { min: 0, max: 3, default: 2 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.47 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P310: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.47 } },
@@ -3463,8 +3520,9 @@ static P310: &[ParamDef] = &[
     ParamDef { id: "Spread", name: "Spread", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.72 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P311: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 2.0 } },
@@ -3473,8 +3531,9 @@ static P311: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P312: &[ParamDef] = &[
     ParamDef { id: "LTime", name: "Left Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.342 } },
@@ -3483,10 +3542,11 @@ static P312: &[ParamDef] = &[
     ParamDef { id: "RFeedback", name: "Right Feedback", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.66 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.73 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P313: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.469 } },
@@ -3496,8 +3556,9 @@ static P313: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P314: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.279 } },
@@ -3507,8 +3568,9 @@ static P314: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.31 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P315: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms", kind: Float { min: 0.0, max: 2.5, default: 0.169 } },
@@ -3518,8 +3580,9 @@ static P315: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.39 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "DryThru", name: "Dry Thru", display: "off_on", kind: Bool { default: true } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P316: &[ParamDef] = &[
     ParamDef { id: "Tone", name: "Tone", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -3647,8 +3710,8 @@ static P333: &[ParamDef] = &[
     ParamDef { id: "Gain", name: "Gain", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P334: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 0.84 } },
@@ -3657,8 +3720,8 @@ static P334: &[ParamDef] = &[
     ParamDef { id: "Pitch", name: "Pitch", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P335: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 6.3 } },
@@ -3667,8 +3730,8 @@ static P335: &[ParamDef] = &[
     ParamDef { id: "Type", name: "Type", display: "mode_pass", kind: Int { min: 0, max: 2, default: 1 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P336: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 0.1 } },
@@ -3677,8 +3740,8 @@ static P336: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P337: &[ParamDef] = &[
     ParamDef { id: "Freq", name: "Frequency", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.27 } },
@@ -3695,8 +3758,8 @@ static P338: &[ParamDef] = &[
     ParamDef { id: "Steps", name: "Steps", display: "integer_steps", kind: Int { min: 2, max: 9, default: 8 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P339: &[ParamDef] = &[
     ParamDef { id: "Freq", name: "Frequency", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.09 } },
@@ -3713,8 +3776,8 @@ static P340: &[ParamDef] = &[
     ParamDef { id: "Vol Sens", name: "Vol Sens", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P341: &[ParamDef] = &[
     ParamDef { id: "Frequency", name: "Frequency", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.7 } },
@@ -3731,8 +3794,8 @@ static P342: &[ParamDef] = &[
     ParamDef { id: "Pitch", name: "Pitch", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P343: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 4.8 } },
@@ -3741,8 +3804,8 @@ static P343: &[ParamDef] = &[
     ParamDef { id: "Wave", name: "Wave", display: "wave_shape_throbber", kind: Int { min: 0, max: 3, default: 0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P344: &[ParamDef] = &[
     ParamDef { id: "Freq", name: "Frequency", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.69 } },
@@ -3767,8 +3830,8 @@ static P346: &[ParamDef] = &[
     ParamDef { id: "Auto", name: "Auto", display: "auto", kind: Int { min: 0, max: 3, default: 0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P347: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.47 } },
@@ -3791,8 +3854,8 @@ static P349: &[ParamDef] = &[
     ParamDef { id: "Manual", name: "Manual", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.38 } },
     ParamDef { id: "Harmonic", name: "Harmonic", display: "even_odd", kind: Bool { default: true } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P350: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 2.34 } },
@@ -3801,8 +3864,8 @@ static P350: &[ParamDef] = &[
     ParamDef { id: "Depth3", name: "Depth 3", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.53 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.86 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P351: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 0.55 } },
@@ -3811,8 +3874,8 @@ static P351: &[ParamDef] = &[
     ParamDef { id: "Manual", name: "Manual", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P352: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 1.6 } },
@@ -3821,8 +3884,8 @@ static P352: &[ParamDef] = &[
     ParamDef { id: "LFOShape", name: "LFO Shape", display: "lfo_shape_dualphaser", kind: Bool { default: false } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P353: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 9.41 } },
@@ -3831,8 +3894,8 @@ static P353: &[ParamDef] = &[
     ParamDef { id: "Volsens", name: "VolSens", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P354: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 1.59 } },
@@ -3841,8 +3904,8 @@ static P354: &[ParamDef] = &[
     ParamDef { id: "Tone", name: "Tone", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P355: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 4.57 } },
@@ -3851,8 +3914,8 @@ static P355: &[ParamDef] = &[
     ParamDef { id: "VolSens", name: "VolSens", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.89 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P356: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.23 } },
@@ -3861,8 +3924,8 @@ static P356: &[ParamDef] = &[
     ParamDef { id: "AM/FM", name: "AM/FM", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.03 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.92 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P357: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.1, max: 15.0, default: 0.55 } },
@@ -3870,8 +3933,8 @@ static P357: &[ParamDef] = &[
     ParamDef { id: "Regen", name: "Regen", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.88 } },
     ParamDef { id: "Manual", name: "Manual", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P358: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 7.55 } },
@@ -3880,8 +3943,8 @@ static P358: &[ParamDef] = &[
     ParamDef { id: "VolSens", name: "VolSens", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P359: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 1.59 } },
@@ -3889,8 +3952,8 @@ static P359: &[ParamDef] = &[
     ParamDef { id: "Mode", name: "Mode", display: "shift_mode", kind: Int { min: 0, max: 2, default: 0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P360: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 3.08 } },
@@ -3899,8 +3962,8 @@ static P360: &[ParamDef] = &[
     ParamDef { id: "VolSen", name: "VolSens", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P361: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 1.59 } },
@@ -3909,8 +3972,8 @@ static P361: &[ParamDef] = &[
     ParamDef { id: "Step3", name: "Step 3", display: "pattern_trem_step", kind: Int { min: 0, max: 17, default: 4 } },
     ParamDef { id: "Step4", name: "Step 4", display: "pattern_trem_step", kind: Int { min: 0, max: 17, default: 6 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P362: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 6.36 } },
@@ -3920,8 +3983,8 @@ static P362: &[ParamDef] = &[
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "RiseTimeSwitch", name: "Rise Time Switch", display: "off_on", kind: Bool { default: true } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P363: &[ParamDef] = &[
     ParamDef { id: "SW1", name: "Switch 1", display: "OFF_ON", kind: Bool { default: false } },
@@ -3954,8 +4017,8 @@ static P366: &[ParamDef] = &[
     ParamDef { id: "Pan Speed", name: "Pan Speed", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P367: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 0.85 } },
@@ -3964,8 +4027,8 @@ static P367: &[ParamDef] = &[
     ParamDef { id: "Manual", name: "Manual", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.63 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P368: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "frequency", kind: Float { min: 0.0, max: 15.0, default: 1.59 } },
@@ -3974,8 +4037,8 @@ static P368: &[ParamDef] = &[
     ParamDef { id: "Stage", name: "Stage", display: "stage", kind: Int { min: 0, max: 3, default: 0 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P369: &[ParamDef] = &[
     ParamDef { id: "Key", name: "Key", display: "key_voice", kind: Int { min: 0, max: 11, default: 0 } },
@@ -4113,8 +4176,9 @@ static P380: &[ParamDef] = &[
     ParamDef { id: "Mode", name: "Mode", display: "delay_mode", kind: Bool { default: false } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P381: &[ParamDef] = &[
     ParamDef { id: "Time", name: "Time", display: "time_ms_0_4000", kind: Float { min: 0.0, max: 4.0, default: 1.2 } },
@@ -4129,8 +4193,9 @@ static P381: &[ParamDef] = &[
     ParamDef { id: "Tap4Pan", name: "T4 Pan", display: "pan", kind: Float { min: 0.0, max: 1.0, default: 0.8 } },
     ParamDef { id: "Tap5Pan", name: "T5 Pan", display: "pan", kind: Float { min: 0.0, max: 1.0, default: 0.022 } },
     ParamDef { id: "Tap6Pan", name: "T6 Pan", display: "pan", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P382: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.47 } },
@@ -4144,8 +4209,9 @@ static P382: &[ParamDef] = &[
     ParamDef { id: "Depth", name: "Depth", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.384 } },
     ParamDef { id: "Xover", name: "Xover", display: "frequency", kind: Float { min: 100.0, max: 10000.0, default: 866.0 } },
     ParamDef { id: "Mod Mix", name: "Mod Mix", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P383: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.65 } },
@@ -4154,6 +4220,7 @@ static P383: &[ParamDef] = &[
     ParamDef { id: "Modulation", name: "Modulation", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.7 } },
     ParamDef { id: "Mix", name: "Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P384: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -4166,6 +4233,7 @@ static P384: &[ParamDef] = &[
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.1, max: 1.0, default: 0.37 } },
     ParamDef { id: "Intensity", name: "Intensity", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.63 } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P385: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.43 } },
@@ -4176,6 +4244,7 @@ static P385: &[ParamDef] = &[
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "LowCut", name: "Low Cut", display: "mod_low_cut", kind: Float { min: 19.9, max: 500.0, default: 169.0 } },
     ParamDef { id: "HighCut", name: "High Cut", display: "mod_high_cut", kind: Float { min: 500.0, max: 20100.0, default: 6000.0 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P386: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.47 } },
@@ -4189,6 +4258,7 @@ static P386: &[ParamDef] = &[
     ParamDef { id: "Pitch2", name: "Pitch 2", display: "pitch", kind: Int { min: -24, max: 24, default: 7 } },
     ParamDef { id: "Cents2", name: "Cents 2", display: "cents", kind: Float { min: -50.0, max: 50.0, default: 0.4 } },
     ParamDef { id: "PitchMix", name: "Pitch Mix", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.24 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P387: &[ParamDef] = &[
     ParamDef { id: "Decay", name: "Decay", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -4200,6 +4270,7 @@ static P387: &[ParamDef] = &[
     ParamDef { id: "Modulation", name: "Modulation", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.3 } },
     ParamDef { id: "Speed", name: "Speed", display: "generic_knob", kind: Float { min: 0.1, max: 1.0, default: 0.37 } },
     ParamDef { id: "Intensity", name: "Intensity", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.63 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P388: &[ParamDef] = &[
     ParamDef { id: "Drive", name: "Drive", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.53 } },
@@ -4395,10 +4466,10 @@ static P405: &[ParamDef] = &[
     ParamDef { id: "Level6", name: "Level6", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level7", name: "Level7", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level8", name: "Level8", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P406: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.5 } },
@@ -4419,10 +4490,10 @@ static P406: &[ParamDef] = &[
     ParamDef { id: "Level6", name: "Level6", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level7", name: "Level7", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
     ParamDef { id: "Level8", name: "Level8", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 1.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "Tempo Sync 2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "Note Sync 2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P407: &[ParamDef] = &[
     ParamDef { id: "DriveNorm", name: "Drive Norm", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
@@ -4664,16 +4735,16 @@ static P427: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Color", name: "Color", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync (Chorus)", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P428: &[ParamDef] = &[
     ParamDef { id: "Rate", name: "Rate", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.35 } },
     ParamDef { id: "Color", name: "Color", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "Spread", name: "Spread", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync (Chorus)", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync (Chorus)", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];
 static P429: &[ParamDef] = &[
     ParamDef { id: "Drive", name: "Drive", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.39 } },
@@ -4727,8 +4798,9 @@ static P433: &[ParamDef] = &[
     ParamDef { id: "Seq Drift", name: "Seq Drift", display: "percent", kind: Float { min: 0.0, max: 1.0, default: 0.0 } },
     ParamDef { id: "Smoothing", name: "Smoothing", display: "percent", kind: Float { min: 0.0, max: 0.5, default: 0.1 } },
     ParamDef { id: "Lock", name: "Lock", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "Tempo Sync", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect1", name: "Note Sync", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
+    ParamDef { id: "@trails", name: "Trails", display: "off_on", kind: Bool { default: false } },
 ];
 static P434: &[ParamDef] = &[
     ParamDef { id: "Interval", name: "Interval", display: "integer_slider_signed", kind: Int { min: -24, max: 24, default: 7 } },
@@ -4787,8 +4859,8 @@ static P439: &[ParamDef] = &[
     ParamDef { id: "RandSpeed", name: "RandSpeed", display: "generic_knob", kind: Float { min: 0.0, max: 1.0, default: 0.1 } },
     ParamDef { id: "Level", name: "Level", display: "volume", kind: Float { min: -60.0, max: 6.0, default: 0.0 } },
     ParamDef { id: "FreezeSwitch", name: "FreezeSwitch", display: "off_on", kind: Bool { default: false } },
-    ParamDef { id: "SyncSelect2", name: "SyncSelect2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync2", name: "TempoSync2", display: "off_on", kind: Bool { default: false } },
+    ParamDef { id: "SyncSelect2", name: "SyncSelect2", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
     ParamDef { id: "TempoSync1", name: "TempoSync1", display: "off_on", kind: Bool { default: false } },
     ParamDef { id: "SyncSelect1", name: "SyncSelect1", display: "sync_note", kind: Int { min: 1, max: 19, default: 6 } },
 ];

@@ -201,6 +201,16 @@ pub struct ParamDef {
 }
 
 impl ParamDef {
+    /// Whether `value` has this parameter's type.
+    pub fn accepts(&self, value: &ParamValue) -> bool {
+        matches!(
+            (self.kind, value),
+            (ParamKind::Float { .. }, ParamValue::Float(_))
+                | (ParamKind::Int { .. }, ParamValue::Int(_))
+                | (ParamKind::Bool { .. }, ParamValue::Bool(_))
+        )
+    }
+
     /// Where `value` lies within the parameter's range, from `0.0` to `1.0`;
     /// `None` for switches and values of the wrong type.
     pub fn fraction(&self, value: &ParamValue) -> Option<f32> {
@@ -344,12 +354,20 @@ impl Block {
     }
 }
 
-/// A model's definitions, if there is one for each of `values`.
+/// A model's definitions, if there is one of the right type for each of
+/// `values`.
 ///
-/// A count mismatch means a firmware with other parameters; then no names
-/// are better than wrong ones.
+/// A mismatch means a firmware with other parameters or a parameter order
+/// that differs from the definition; then no names are better than wrong
+/// ones.
 fn matching_defs(model: u16, values: &[ParamValue]) -> Option<&'static [ParamDef]> {
-    model_params(model).filter(|defs| defs.len() == values.len())
+    model_params(model).filter(|defs| {
+        defs.len() == values.len()
+            && defs
+                .iter()
+                .zip(values)
+                .all(|(def, value)| def.accepts(value))
+    })
 }
 
 /// Where path 2 branches off path 1 and where it merges back.
@@ -489,9 +507,24 @@ mod tests {
     fn param_defs_require_a_matching_value_count() {
         let mut b = block(BlockKind::Model(582));
         b.params = vec![ParamValue::Float(0.0); 6];
+        b.params[1] = ParamValue::Int(1);
+        b.params[4] = ParamValue::Bool(false);
         assert_eq!(b.param_defs().map(<[_]>::len), Some(6));
 
         b.params.pop();
+        assert!(b.param_defs().is_none());
+    }
+
+    #[test]
+    fn param_defs_require_matching_value_types() {
+        let mut b = block(BlockKind::Model(582));
+        b.params = vec![ParamValue::Float(0.0); 6];
+        // Horizon Drive's second parameter is the integer "Attack".
+        b.params[1] = ParamValue::Int(1);
+        b.params[4] = ParamValue::Bool(false);
+        assert!(b.param_defs().is_some());
+
+        b.params[1] = ParamValue::Bool(true);
         assert!(b.param_defs().is_none());
     }
 

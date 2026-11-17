@@ -292,6 +292,15 @@ mod tests {
             .collect();
         assert_eq!(path2, [3]);
 
+        // Delays and reverbs end with their trails switch, and tempo sync
+        // comes before the note value.
+        for block in &cathedral.blocks {
+            assert!(block.param_defs().is_some(), "{}", block.name());
+        }
+        let pitch_echo = cathedral.blocks[2].param_defs().unwrap();
+        let tail: Vec<_> = pitch_echo.iter().rev().take(3).map(|d| d.id).collect();
+        assert_eq!(tail, ["@trails", "SyncSelect1", "TempoSync1"]);
+
         // Two cabs in parallel after the amp in position 4.
         let dual_cab = parse_active_preset(HX_STOMP_STREAM).unwrap();
         assert_eq!(dual_cab.split, Some(PathSplit { split: 4, join: 6 }));
