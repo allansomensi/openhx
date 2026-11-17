@@ -144,6 +144,16 @@ Each slot is `{19: type, 20: body}`:
 | `7` | Looper (not decoded yet) | — |
 | `8` | Empty position | `nil` |
 
+### Split and Join
+
+Path 2's input slot (type `2`) holds the split under key `15`, and its output slot (type `3`) holds the join under key `17`:
+
+```
+{ 8: model, 13: slot, 10: enabled, 7: params }
+```
+
+`13` is the index of the path 1 slot that the split or join sits *before*. Path 2 carries the signal for the positions in between. The factory preset "Cathedral" on an HX Stomp has a split with `13: 3` and a join with `13: 5`. Path 1 branches off between positions 2 and 3, and path 2 merges back before position 5, where path 1's reverb sits. The split model was `257` and the join model `151` (a mixer with six parameters) in both captured presets; the other split types have not been captured yet.
+
 ### Block Body
 
 ```
