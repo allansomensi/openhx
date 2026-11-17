@@ -26,10 +26,10 @@ Use this as a pre-flight before testing a new implementation:
 - [ ] Send the 5 init packets in order, reading and discarding one response after each
 - [ ] Send OPEN_PRESETS (`seq=0x06`), read and discard response
 - [ ] Send OPEN_STREAM (`seq=0x07`), collect `response[16..n]` as chunk #0
-- [ ] Loop: send chunk requests (`seq` starting at `0x08`, `offset` starting at `0x00001138`), collect `response[16..n]`, stop when `n < 272`
-- [ ] Locate `DC 00 80` in the reassembled buffer
-- [ ] Parse the MessagePack `array16` of 128 maps
-- [ ] For each element: extract the outer map key as preset index (`u16`), look up inner map key `109` as preset name, strip the trailing `\0`
+- [ ] Loop: send chunk requests (`seq` starting at `0x08`, `offset` starting at `0x00001138`), collect `response[16..n]`, stop once the stream holds `8 + payload_len` bytes (`payload_len` from bytes `20..24` of the first response)
+- [ ] Locate `DC` followed by `preset_count` as big-endian `u16` in the reassembled buffer (`DC 00 7E` on an HX Stomp, `DC 00 80` on an HX Stomp XL / Helix)
+- [ ] Parse the MessagePack `array16` of `preset_count` maps
+- [ ] For each element: take its array position as the slot (the outer map key can be stale, see [data-format.md](./presets/data-format.md#preset-slots-and-indices)), look up inner map key `109` as preset name, strip the trailing `\0`
 - [ ] Release USB interface on exit
 
 ---
@@ -42,4 +42,4 @@ Use this as a pre-flight before testing a new implementation:
 | Custom handshake magic | Uses `0x0028` instead of the standard Line 6 value `0x0018`. |
 | 16-byte response header | All data responses (Phases 2 and 3) have a 16-byte header; payload starts at byte 16. |
 | Stale session state | The device ignores init packets from a new session if the previous one wasn't closed. Drain + retry resolves this. |
-| Short-read end-of-stream | No explicit terminator packet; the stream ends when the response size drops below 272 bytes. |
+| Length-delimited stream | No explicit terminator packet; the first response announces the stream length. Chunk sizes vary (272, 468 and 512 bytes seen), and header-only replies can appear mid-stream. |

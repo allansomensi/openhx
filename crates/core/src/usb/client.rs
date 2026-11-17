@@ -1,5 +1,5 @@
 use super::{
-    parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status},
+    parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status, stream_len},
     protocol::*,
 };
 use crate::{
@@ -335,7 +335,7 @@ impl Client {
 
     /// Executes a single, complete preset extraction session for `setlist`.
     fn run_session(&self, setlist: u8, timeout: Duration) -> Result<Vec<Preset>, HxError> {
-        let mut buf = vec![0u8; 512];
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
         let mut raw_stream: Vec<u8> = Vec::with_capacity(4_096);
 
         self.session_init(&mut buf, timeout)?;
@@ -351,26 +351,47 @@ impl Client {
         let n = self.read_for_seq(OPEN_STREAM_SEQ, &mut buf, timeout)?;
         self.collect_payload(&mut raw_stream, &buf, n);
 
-        // Phase 3: paginate until end-of-stream
+        // The first chunk's inner header announces the stream's total length.
+        // Chunk sizes vary between devices and even between sessions, so the
+        // length — not the size of a chunk — tells when the stream is complete.
+        let expected_len = stream_len(&buf, n)?;
+
+        // Phase 3: paginate until the announced length has arrived
         let mut seq: u8 = PAGINATION_INITIAL_SEQ;
         let mut offset: u32 = STREAM_INITIAL_OFFSET;
 
-        loop {
+        for _ in 0..MAX_STREAM_REQUESTS {
+            if raw_stream.len() >= expected_len {
+                break;
+            }
+
             let request = build_pagination_request(seq, offset);
             self.handle.write_bulk(EP_OUT, &request, timeout)?;
             let n = self.read_for_seq(seq, &mut buf, timeout)?;
-            self.collect_payload(&mut raw_stream, &buf, n);
 
-            // Phase 4: a response shorter than MAX_CHUNK_SIZE signals
-            // end-of-stream.
-            if n < MAX_CHUNK_SIZE {
-                break;
-            }
+            // A header-only reply (`cmd = 0x08`) carries no data: the device
+            // had no chunk ready yet. The next request picks the stream up.
+            tracing::debug!(
+                seq = format!("0x{seq:02X}"),
+                len = n,
+                received = raw_stream.len(),
+                expected = expected_len,
+                "preset stream chunk",
+            );
+            self.collect_payload(&mut raw_stream, &buf, n);
 
             offset = offset
                 .checked_add(OFFSET_STEP)
                 .ok_or_else(|| HxError::protocol(fl!("usb-stream-offset-overflow")))?;
             seq = seq.wrapping_add(1);
+        }
+
+        if raw_stream.len() < expected_len {
+            return Err(HxError::protocol(fl!(
+                "usb-stream-incomplete",
+                got = raw_stream.len(),
+                expected = expected_len
+            )));
         }
 
         parse_msgpack_stream(&raw_stream, self.profile.preset_count, setlist)

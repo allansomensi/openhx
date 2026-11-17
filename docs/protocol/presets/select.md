@@ -57,6 +57,14 @@ fn build_select_preset_request(seq: u8, setlist: u8, preset: u8) -> [u8; 40] {
 
 Perform one bulk read and match the sequence byte (`0x06`). The ACK content is not parsed.
 
+> **The ACK reports status `1` on success.** An HX Stomp (firmware 3.80) answered a successful selection with `{102: 1010, 103: 1, 104: nil}`. Unlike the [setlist reply](./setlists.md), where `103` is `0` on success, a client that requires `103 == 0` here would report a false error.
+
+```
+19 00 00 18 EF 03 01 10 00 06 00 04 30 02 00 00
+00 00 02 00 09 00 00 00 83 66 CD 03 F2 67 01 68
+C0 72 65 73
+```
+
 ---
 
 ## Phase 2 — Drain
