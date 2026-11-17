@@ -27,9 +27,9 @@ Use this as a pre-flight before testing a new implementation:
 - [ ] Send OPEN_PRESETS (`seq=0x06`), read and discard response
 - [ ] Send OPEN_STREAM (`seq=0x07`), collect `response[16..n]` as chunk #0
 - [ ] Loop: send chunk requests (`seq` starting at `0x08`, `offset` starting at `0x00001138`), collect `response[16..n]`, stop when `n < 272`
-- [ ] Locate `DC 00 80` in the reassembled buffer
-- [ ] Parse the MessagePack `array16` of 128 maps
-- [ ] For each element: extract the outer map key as preset index (`u16`), look up inner map key `109` as preset name, strip the trailing `\0`
+- [ ] Locate `DC` followed by `preset_count` as big-endian `u16` in the reassembled buffer (`DC 00 7E` on an HX Stomp, `DC 00 80` on an HX Stomp XL / Helix)
+- [ ] Parse the MessagePack `array16` of `preset_count` maps
+- [ ] For each element: take its array position as the slot (the outer map key can be stale, see [data-format.md](./presets/data-format.md#preset-slots-and-indices)), look up inner map key `109` as preset name, strip the trailing `\0`
 - [ ] Release USB interface on exit
 
 ---

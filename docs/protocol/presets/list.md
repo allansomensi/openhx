@@ -176,7 +176,7 @@ The setlist index sent in Phase 2 selects which setlist the device streams. Ever
 | HX Stomp, HX Stomp XL | 1 | `0` |
 | Helix Floor (and, presumably, Helix LT / Rack) | 8 | `0`–`7` |
 
-Preset indices in the returned stream are **device-global**: `index = setlist × preset_count + slot`. Setlist `1` of a 128-preset device therefore returns indices `128`–`255`, setlist `2` returns `256`–`383`, and so on. Convert them to slots before presenting them to users — see [data-format.md](./data-format.md#preset-indices).
+Preset indices in the returned stream are **device-global**: `index = setlist × preset_count + slot`. Setlist `1` of a 128-preset device therefore returns indices `128`–`255`, setlist `2` returns `256`–`383`, and so on. The slot itself is the entry's position in the array, since the index can be stale. See [data-format.md](./data-format.md#preset-slots-and-indices).
 
 Validated on a Helix Floor for all eight setlists.
 
@@ -203,8 +203,8 @@ Host                                       HX Stomp
  │◄─── response[16:n] (n < 272) → chunk #N ──── │
  │                                              │
  │  [Phase 4 — Parse]                           │
- │     locate DC 00 80 in raw_stream            │
- │     decode MessagePack array[128]            │
+ │     locate DC <preset_count> in raw_stream   │
+ │     decode MessagePack array[preset_count]   │
  │     extract key=109 from each preset map     │
  │     strip trailing \0 from each name         │
 ```
