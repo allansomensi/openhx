@@ -8,6 +8,12 @@ pub enum HxError {
     )]
     DeviceNotFound,
 
+    #[error(
+        "Found '{device}' but access was denied. On Linux, install the udev \
+         rule from pkg/linux/70-openhx.rules (see the README) and replug the device."
+    )]
+    PermissionDenied { device: &'static str },
+
     #[error("USB communication error: {0}")]
     Usb(#[from] rusb::Error),
 
@@ -50,6 +56,13 @@ mod tests {
         let rusb_err = rusb::Error::NoDevice;
         let hx_err: HxError = rusb_err.into();
         assert!(matches!(hx_err, HxError::Usb(rusb::Error::NoDevice)));
+    }
+
+    #[test]
+    fn permission_denied_display_names_device_and_udev_rule() {
+        let s = HxError::PermissionDenied { device: "HX Stomp" }.to_string();
+        assert!(s.contains("HX Stomp"));
+        assert!(s.contains("udev"));
     }
 
     // Debug

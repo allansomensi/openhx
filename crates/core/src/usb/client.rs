@@ -104,9 +104,7 @@ impl Client {
     fn connect_profile(profile: &'static DeviceProfile) -> Result<Self, HxError> {
         let context = Context::new()?;
 
-        let handle = context
-            .open_device_with_vid_pid(profile.vendor_id, profile.product_id)
-            .ok_or(HxError::DeviceNotFound)?;
+        let handle = Self::open_matching(&context, profile)?;
 
         // Ask libusb to detach any kernel driver bound to the interface so we
         // can claim it exclusively.
@@ -131,6 +129,36 @@ impl Client {
         client.drain_stale_data();
 
         Ok(client)
+    }
+
+    /// Finds the first device matching `profile` and opens it.
+    ///
+    /// Unlike `open_device_with_vid_pid`, which collapses every open failure
+    /// into `None`, this keeps the cause: an access error means the device is
+    /// present but the OS refused to hand it over, which needs a different fix
+    /// (a udev rule on Linux) than an unplugged device.
+    fn open_matching(
+        context: &Context,
+        profile: &'static DeviceProfile,
+    ) -> Result<DeviceHandle<Context>, HxError> {
+        let device = context
+            .devices()?
+            .iter()
+            .find(|dev| {
+                dev.device_descriptor().is_ok_and(|desc| {
+                    desc.vendor_id() == profile.vendor_id && desc.product_id() == profile.product_id
+                })
+            })
+            .ok_or(HxError::DeviceNotFound)?;
+
+        device.open().map_err(|e| match e {
+            rusb::Error::Access => HxError::PermissionDenied {
+                device: profile.name,
+            },
+            // Unplugged between enumeration and open.
+            rusb::Error::NoDevice | rusb::Error::NotFound => HxError::DeviceNotFound,
+            other => HxError::Usb(other),
+        })
     }
 
     /// Core retry loop for reading presets, extracted to avoid name collision
