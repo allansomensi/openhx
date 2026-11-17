@@ -1,7 +1,7 @@
 use crate::{
     error::HxError,
     models::{Preset, Setlist},
-    usb::protocol::{RESPONSE_LEN_OFFSET, RESPONSE_PAYLOAD_OFFSET},
+    usb::protocol::{RESPONSE_HEADER_SIZE, RESPONSE_LEN_OFFSET, RESPONSE_PAYLOAD_OFFSET},
 };
 use openhx_i18n::fl;
 use rmpv::decode::read_value;
@@ -39,6 +39,27 @@ pub fn response_payload(buf: &[u8], n: usize) -> Result<&[u8], HxError> {
         .ok_or_else(|| HxError::protocol(fl!("msgpack-response-truncated", len = len, got = n)))?;
 
     Ok(&buf[RESPONSE_PAYLOAD_OFFSET..end])
+}
+
+/// Returns the total length of a multi-packet response, measured like the
+/// stream assembled from each packet's bytes after [`RESPONSE_HEADER_SIZE`].
+///
+/// Only the first packet carries the inner header: 8 bytes whose last four
+/// are the little-endian payload length. The assembled stream therefore
+/// holds those 8 bytes followed by the payload.
+pub fn stream_len(buf: &[u8], n: usize) -> Result<usize, HxError> {
+    if n < RESPONSE_PAYLOAD_OFFSET {
+        return Err(HxError::protocol(fl!(
+            "msgpack-response-too-short",
+            len = n
+        )));
+    }
+
+    let len_bytes: [u8; 4] = buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET]
+        .try_into()
+        .map_err(|_| HxError::protocol(fl!("msgpack-response-too-short", len = n)))?;
+
+    Ok(RESPONSE_PAYLOAD_OFFSET - RESPONSE_HEADER_SIZE + u32::from_le_bytes(len_bytes) as usize)
 }
 
 /// Decodes a response envelope (`{102: txn, 103: status, 104: result}`) and
@@ -325,6 +346,20 @@ mod tests {
             .copy_from_slice(b"\x01\x02\x03\x04");
 
         assert_eq!(response_payload(&buf, 32).unwrap(), b"\x01\x02\x03\x04");
+    }
+
+    #[test]
+    fn stream_len_counts_inner_header_and_payload() {
+        // First packet of the HX Stomp preset stream: payload length 0x0CBC.
+        let mut buf = vec![0u8; 272];
+        buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET].copy_from_slice(&0x0CBCu32.to_le_bytes());
+
+        assert_eq!(stream_len(&buf, 272).unwrap(), 8 + 0x0CBC);
+    }
+
+    #[test]
+    fn stream_len_rejects_packet_without_inner_header() {
+        assert!(stream_len(&[0u8; 16], 16).is_err());
     }
 
     #[test]

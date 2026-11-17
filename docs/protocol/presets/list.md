@@ -133,19 +133,17 @@ fn build_chunk_request(seq: u8, offset: u32) -> [u8; 16] {
 ### Loop Pseudocode
 
 ```
-seq    = 0x08
-offset = 0x00001138
+seq          = 0x08
+offset       = 0x00001138
+expected_len = 8 + u32_le(chunk_0[20..24])   // see Phase 4
 
-LOOP:
+WHILE raw_stream.len() < expected_len:
     packet = build_chunk_request(seq, offset)
     write_bulk(EP_OUT, packet)
-    n = read_bulk(EP_IN, buf[512])
+    n = read_bulk(EP_IN, buf[2048])
 
-    if n > 16:
+    if n > 16:                 // header-only replies carry no data
         raw_stream.append(buf[16..n])
-
-    if n < 272:          // MAX_CHUNK_SIZE — end of stream
-        STOP
 
     offset = offset + 0x0100
     seq    = (seq + 1) & 0xFF
@@ -155,13 +153,15 @@ LOOP:
 
 ## Phase 4 — End of Stream Detection
 
-A chunk response is considered the **final chunk** when the number of bytes read is **less than 272** (`MAX_CHUNK_SIZE`). The device sends no explicit end-of-stream packet.
+The first response (chunk #0, from Phase 2) announces the stream's length. Bytes `20..24` of that packet hold the payload length as a little-endian `u32`. The assembled stream (everything after each packet's 16-byte header) holds the 8-byte inner header plus that payload, so it is complete once it reaches `8 + payload_len` bytes. The device sends no explicit end-of-stream packet.
+
+**Do not use the chunk size to detect the end.** Chunk sizes vary between devices and between sessions. An HX Stomp XL sends 272-byte chunks, while an HX Stomp (firmware 3.80) was seen sending 272-, 468- and 512-byte chunks. The HX Stomp also answers some requests with a header-only reply (`n = 16`, `cmd = 0x08`) in the middle of the stream. That reply carries no data, but the stream continues with the next request. Treating a short or header-only reply as the end truncates the stream.
 
 | Condition | Meaning |
 |---|---|
-| `n == 272` | Full chunk — more data follows |
-| `n < 272` | Short (final) chunk — stream exhausted |
-| `n <= 16` | Empty final packet — no payload bytes |
+| `n > 16` | Chunk — append `buf[16..n]` |
+| `n == 16` | Header-only reply — no data yet, keep requesting |
+| `raw_stream.len() >= 8 + payload_len` | Stream complete |
 
 After the loop ends, the reassembly buffer contains the complete raw MessagePack stream. Parse it using [presets/data-format.md](./data-format.md).
 
@@ -200,7 +200,7 @@ Host                                       HX Stomp
  │◄─── response[16:n] → chunk #1 ────────────── │
  │     (repeat, incrementing seq and offset)    │
  │──── chunk_request(seq, offset) ────────────► │
- │◄─── response[16:n] (n < 272) → chunk #N ──── │
+ │◄─── response[16:n] → chunk #N (stream full) ─ │
  │                                              │
  │  [Phase 4 — Parse]                           │
  │     locate DC <preset_count> in raw_stream   │

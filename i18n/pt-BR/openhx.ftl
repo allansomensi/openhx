@@ -30,6 +30,7 @@ usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }
 usb-stream-offset-overflow = Estouro de offset do fluxo no payload USB.
+usb-stream-incomplete = O stream de presets terminou antes do esperado: { $got } de { $expected } bytes recebidos.
 usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
 

@@ -30,6 +30,7 @@ usb-detected = Detected: { $device }
 usb-device-unresponsive = Device '{ $device }' unresponsive after { $attempts } attempts.
 usb-kernel-detach-failed = Kernel detach failed: { $error }
 usb-stream-offset-overflow = Stream offset overflow in USB payload.
+usb-stream-incomplete = Preset stream ended early: received { $got } of { $expected } bytes.
 usb-setlist-out-of-range = Setlist { $setlist } is out of range: '{ $device }' holds { $count } setlist(s) (0–{ $max }).
 usb-retry-attempt = [{ $device }] Attempt { $current }/{ $total } failed. Retrying in { $wait_ms } ms...
 
