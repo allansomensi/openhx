@@ -1,7 +1,7 @@
 use crate::{
     error::HxError,
     models::{Preset, Setlist},
-    usb::protocol::{RESPONSE_LEN_OFFSET, RESPONSE_PAYLOAD_OFFSET},
+    usb::protocol::{RESPONSE_HEADER_SIZE, RESPONSE_LEN_OFFSET, RESPONSE_PAYLOAD_OFFSET},
 };
 use openhx_i18n::fl;
 use rmpv::decode::read_value;
@@ -39,6 +39,27 @@ pub fn response_payload(buf: &[u8], n: usize) -> Result<&[u8], HxError> {
         .ok_or_else(|| HxError::protocol(fl!("msgpack-response-truncated", len = len, got = n)))?;
 
     Ok(&buf[RESPONSE_PAYLOAD_OFFSET..end])
+}
+
+/// Returns the total length of a multi-packet response, measured like the
+/// stream assembled from each packet's bytes after [`RESPONSE_HEADER_SIZE`].
+///
+/// Only the first packet carries the inner header: 8 bytes whose last four
+/// are the little-endian payload length. The assembled stream therefore
+/// holds those 8 bytes followed by the payload.
+pub fn stream_len(buf: &[u8], n: usize) -> Result<usize, HxError> {
+    if n < RESPONSE_PAYLOAD_OFFSET {
+        return Err(HxError::protocol(fl!(
+            "msgpack-response-too-short",
+            len = n
+        )));
+    }
+
+    let len_bytes: [u8; 4] = buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET]
+        .try_into()
+        .map_err(|_| HxError::protocol(fl!("msgpack-response-too-short", len = n)))?;
+
+    Ok(RESPONSE_PAYLOAD_OFFSET - RESPONSE_HEADER_SIZE + u32::from_le_bytes(len_bytes) as usize)
 }
 
 /// Decodes a response envelope (`{102: txn, 103: status, 104: result}`) and
@@ -120,9 +141,13 @@ pub fn parse_setlists(payload: &[u8]) -> Result<Vec<Setlist>, HxError> {
 /// The function scans the byte stream for a specific 3-byte array marker that indicates
 /// the start of the preset list, then decodes the subsequent MessagePack structures.
 ///
-/// The device addresses presets globally as `setlist × preset_count + slot`;
-/// every entry is checked to belong to `setlist` and returned with its slot
-/// as [`Preset::index`].
+/// A preset's slot is its **position** in the array: the position is what the
+/// device displays and what [`build_select_preset_request`] addresses. Each
+/// entry's outer key (`setlist × preset_count + slot` in the common case) can
+/// go stale when presets are reordered, so it is only checked to fall within
+/// `setlist`'s range.
+///
+/// [`build_select_preset_request`]: crate::usb::protocol::build_select_preset_request
 pub fn parse_msgpack_stream(
     data: &[u8],
     preset_count: u16,
@@ -143,22 +168,45 @@ pub fn parse_msgpack_stream(
         .as_array()
         .ok_or_else(|| HxError::protocol(fl!("msgpack-root-not-array")))?;
 
+    // The marker encodes `preset_count`, so a decoded array of any other
+    // length means the stream is corrupt.
+    if items.len() != usize::from(preset_count) {
+        return Err(HxError::protocol(fl!(
+            "msgpack-preset-count-mismatch",
+            expected = preset_count,
+            got = items.len()
+        )));
+    }
+
     items
         .iter()
-        .map(|item| parse_preset(item, preset_count, setlist))
+        .enumerate()
+        .map(|(position, item)| {
+            let slot = u8::try_from(position).map_err(|_| {
+                HxError::protocol(fl!("msgpack-preset-slot-overflow", slot = position))
+            })?;
+            parse_preset(item, slot, preset_count, setlist)
+        })
         .collect()
 }
 
-/// Parses one preset slot.
+/// Parses the preset at array position `slot`.
 ///
 /// Expected layout:
 /// ```text
 /// fixmap(1) { <index: uint> → fixmap { ..., 109: <name: str>, ... } }
 /// ```
 ///
-/// `index` is the device-global preset index; it is converted to a slot
-/// within `setlist`.
-fn parse_preset(item: &rmpv::Value, preset_count: u16, setlist: u8) -> Result<Preset, HxError> {
+/// `index` is a device-global preset index. It usually equals
+/// `setlist × preset_count + slot`, but devices have been seen reporting
+/// swapped indices after presets were reordered, so it only has to fall
+/// within `setlist`'s range; the slot always comes from the position.
+fn parse_preset(
+    item: &rmpv::Value,
+    slot: u8,
+    preset_count: u16,
+    setlist: u8,
+) -> Result<Preset, HxError> {
     let map = item
         .as_map()
         .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-not-map")))?;
@@ -172,27 +220,35 @@ fn parse_preset(item: &rmpv::Value, preset_count: u16, setlist: u8) -> Result<Pr
         .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-index-not-int")))?;
 
     let base = u64::from(setlist) * u64::from(preset_count);
-    let slot = index
+    let in_setlist = index
         .checked_sub(base)
-        .filter(|slot| *slot < u64::from(preset_count))
-        .and_then(|slot| u8::try_from(slot).ok())
-        .ok_or_else(|| {
-            HxError::protocol(fl!(
-                "msgpack-preset-index-out-of-setlist",
-                index = index,
-                setlist = setlist
-            ))
-        })?;
+        .is_some_and(|offset| offset < u64::from(preset_count));
+    if !in_setlist {
+        return Err(HxError::protocol(fl!(
+            "msgpack-preset-index-out-of-setlist",
+            index = index,
+            setlist = setlist
+        )));
+    }
+
+    if index - base != u64::from(slot) {
+        tracing::debug!(
+            slot,
+            index,
+            setlist,
+            "preset index key differs from array position"
+        );
+    }
 
     let inner_map = value
         .as_map()
-        .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-inner-not-map", index = index)))?;
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-inner-not-map", index = slot)))?;
 
     let name = inner_map
         .iter()
         .find(|(k, _)| k.as_u64() == Some(MSGPACK_KEY_PRESET_NAME))
         .and_then(|(_, v)| v.as_str())
-        .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-name-not-found", index = index)))?
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-preset-name-not-found", index = slot)))?
         .trim_end_matches('\0')
         .to_owned();
 
@@ -293,6 +349,20 @@ mod tests {
     }
 
     #[test]
+    fn stream_len_counts_inner_header_and_payload() {
+        // First packet of the HX Stomp preset stream: payload length 0x0CBC.
+        let mut buf = vec![0u8; 272];
+        buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET].copy_from_slice(&0x0CBCu32.to_le_bytes());
+
+        assert_eq!(stream_len(&buf, 272).unwrap(), 8 + 0x0CBC);
+    }
+
+    #[test]
+    fn stream_len_rejects_packet_without_inner_header() {
+        assert!(stream_len(&[0u8; 16], 16).is_err());
+    }
+
+    #[test]
     fn response_payload_rejects_truncated_response() {
         let mut buf = vec![0u8; 32];
         buf[RESPONSE_LEN_OFFSET..RESPONSE_PAYLOAD_OFFSET].copy_from_slice(&999u32.to_le_bytes());
@@ -356,6 +426,45 @@ mod tests {
     }
 
     #[test]
+    fn stream_slot_comes_from_array_position_not_index_key() {
+        // Captured from an HX Stomp after reordering: positions 1 and 2 carry
+        // each other's index keys, while the array is in device slot order.
+        let stream = build_stream(
+            &[],
+            &[
+                (0, "TANK86"),
+                (2, "DOOM"),
+                (1, "DUSKHEAD"),
+                (3, "New Preset"),
+            ],
+        );
+        let result = parse_msgpack_stream(&stream, 4, 0).unwrap();
+
+        assert_eq!(result[0], Preset::new(0, "TANK86"));
+        assert_eq!(result[1], Preset::new(1, "DOOM"));
+        assert_eq!(result[2], Preset::new(2, "DUSKHEAD"));
+        assert_eq!(result[3], Preset::new(3, "New Preset"));
+    }
+
+    #[test]
+    fn stream_slot_uses_position_in_later_setlists() {
+        // Setlist 1 of a 2-preset device with swapped keys 3 and 2.
+        let stream = build_stream(&[], &[(3, "First"), (2, "Second")]);
+        let result = parse_msgpack_stream(&stream, 2, 1).unwrap();
+
+        assert_eq!(result[0], Preset::new(0, "First"));
+        assert_eq!(result[1], Preset::new(1, "Second"));
+    }
+
+    #[test]
+    fn stream_truncated_array_returns_error() {
+        // The marker announces 3 entries but the stream ends after 2.
+        let mut stream = build_stream(&[], &[(0, "A"), (1, "B")]);
+        stream[1..3].copy_from_slice(&3u16.to_be_bytes());
+        assert!(parse_msgpack_stream(&stream, 3, 0).is_err());
+    }
+
+    #[test]
     fn stream_index_outside_requested_setlist_returns_error() {
         let stream = build_stream(&[], &[(5, "Stray")]);
         let err = parse_msgpack_stream(&stream, 1, 1).unwrap_err();
@@ -389,7 +498,7 @@ mod tests {
         )]);
         let outer = Value::Map(vec![(Value::Integer(42.into()), inner)]);
 
-        let preset = parse_preset(&outer, 128, 0).unwrap();
+        let preset = parse_preset(&outer, 42, 128, 0).unwrap();
         assert_eq!(preset.index, 42);
         assert_eq!(preset.name, "Crunch");
     }
@@ -407,14 +516,14 @@ mod tests {
         ]);
         let outer = Value::Map(vec![(Value::Integer(0u64.into()), inner)]);
 
-        let preset = parse_preset(&outer, 128, 0).unwrap();
+        let preset = parse_preset(&outer, 0, 128, 0).unwrap();
         assert_eq!(preset.name, "Jazz");
     }
 
     #[test]
     fn preset_item_not_a_map_returns_error() {
         let item = Value::Integer(42.into());
-        let err = parse_preset(&item, 128, 0).unwrap_err();
+        let err = parse_preset(&item, 0, 128, 0).unwrap_err();
         assert!(matches!(err, HxError::Protocol(_)));
     }
 
@@ -425,7 +534,7 @@ mod tests {
             Value::String("Name\0".into()),
         )]);
         let outer = Value::Map(vec![(Value::Integer(0u64.into()), inner)]);
-        let err = parse_preset(&outer, 128, 0).unwrap_err();
+        let err = parse_preset(&outer, 0, 128, 0).unwrap_err();
         assert!(matches!(err, HxError::Protocol(_)));
     }
 }

@@ -84,4 +84,4 @@ Responses in the preset stream have a fixed 16-byte header followed by payload d
 [16..n]   payload data
 ```
 
-A response where `n < 272` signals end of stream. See [presets/list.md](./presets/list.md#phase-4--end-of-stream-detection).
+The stream is complete once it holds the length announced in the first response's inner header. See [presets/list.md](./presets/list.md#phase-4--end-of-stream-detection).

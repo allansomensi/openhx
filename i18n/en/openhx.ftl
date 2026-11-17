@@ -30,6 +30,7 @@ usb-detected = Detected: { $device }
 usb-device-unresponsive = Device '{ $device }' unresponsive after { $attempts } attempts.
 usb-kernel-detach-failed = Kernel detach failed: { $error }
 usb-stream-offset-overflow = Stream offset overflow in USB payload.
+usb-stream-incomplete = Preset stream ended early: received { $got } of { $expected } bytes.
 usb-setlist-out-of-range = Setlist { $setlist } is out of range: '{ $device }' holds { $count } setlist(s) (0–{ $max }).
 usb-retry-attempt = [{ $device }] Attempt { $current }/{ $total } failed. Retrying in { $wait_ms } ms...
 
@@ -40,6 +41,8 @@ msgpack-preset-index-not-int = Preset index is not an integer.
 msgpack-preset-inner-not-map = Preset { $index }: property map is not a map.
 msgpack-preset-name-not-found = Preset { $index }: name key not found or invalid.
 msgpack-preset-index-out-of-setlist = Preset index { $index } does not belong to setlist { $setlist }.
+msgpack-preset-count-mismatch = Preset array holds { $got } entries; expected { $expected }.
+msgpack-preset-slot-overflow = Preset slot { $slot } does not fit in a byte.
 msgpack-response-too-short = Device response is too short to contain a payload ({ $len } bytes).
 msgpack-response-truncated = Device response payload is truncated: expected { $len } bytes, read { $got }.
 msgpack-response-not-map = Device response envelope is not a map.

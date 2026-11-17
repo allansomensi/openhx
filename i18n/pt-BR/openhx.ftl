@@ -30,6 +30,7 @@ usb-detected = Detectado: { $device }
 usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $attempts } tentativas.
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }
 usb-stream-offset-overflow = Estouro de offset do fluxo no payload USB.
+usb-stream-incomplete = O stream de presets terminou antes do esperado: { $got } de { $expected } bytes recebidos.
 usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
 
@@ -40,6 +41,8 @@ msgpack-preset-index-not-int = O índice do preset não é um número inteiro.
 msgpack-preset-inner-not-map = Preset { $index }: o mapa de propriedades não é um mapa.
 msgpack-preset-name-not-found = Preset { $index }: chave de nome não encontrada ou inválida.
 msgpack-preset-index-out-of-setlist = O índice de preset { $index } não pertence à setlist { $setlist }.
+msgpack-preset-count-mismatch = O array de presets possui { $got } entradas; esperado { $expected }.
+msgpack-preset-slot-overflow = O slot de preset { $slot } não cabe em um byte.
 msgpack-response-too-short = A resposta do dispositivo é curta demais para conter um payload ({ $len } bytes).
 msgpack-response-truncated = O payload da resposta do dispositivo está truncado: esperado { $len } bytes, lido { $got }.
 msgpack-response-not-map = O envelope da resposta do dispositivo não é um mapa.

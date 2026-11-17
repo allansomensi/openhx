@@ -9,8 +9,17 @@ pub const OFFSET_STEP: u32 = 0x0100;
 pub const STREAM_INITIAL_OFFSET: u32 = 0x0000_1138;
 pub const PAGINATION_INITIAL_SEQ: u8 = 0x08;
 
-/// A response shorter than this value signals end-of-stream.
-pub const MAX_CHUNK_SIZE: usize = 272;
+/// Size of the IN buffer used while streaming presets.
+///
+/// Stream chunks have been seen at 272, 468 and 512 bytes; the buffer leaves
+/// headroom so a larger chunk is not cut off by the read.
+pub const STREAM_BUFFER_SIZE: usize = 2_048;
+
+/// Upper bound on pagination requests for one preset stream.
+///
+/// A full 128-preset stream needs well under 32 chunks even at the smallest
+/// observed chunk size; the cap only stops a device that never completes it.
+pub const MAX_STREAM_REQUESTS: usize = 128;
 
 /// Number of leading header bytes to skip before the MessagePack payload.
 pub const RESPONSE_HEADER_SIZE: usize = 16;
