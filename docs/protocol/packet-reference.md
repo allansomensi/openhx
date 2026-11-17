@@ -49,6 +49,16 @@ All OUT packets are immediately followed by a bulk IN read.
 |---|---|---|---|---|---|---|
 | 6 | SELECT_PRESET | OUT | 40 | `0x06` | `0x04` | Dynamic: byte 34 = setlist, byte 36 = preset slot. Replaces OPEN_PRESETS in a select session |
 
+---
+
+## Preset Rename
+
+> Documented in: [presets/rename.md](./presets/rename.md)
+
+| Step | Name | Direction | Length | seq | cmd | Notes |
+|---|---|---|---|---|---|---|
+| 6 | RENAME_PRESET | OUT | variable | `0x06` | `0x04` | Dynamic: byte 34 = setlist, byte 36 = preset slot, name from byte 39. Replaces OPEN_PRESETS in a rename session |
+
 The ACK is followed by an unsolicited burst of notification packets that must be drained.
 
 ---
@@ -84,4 +94,4 @@ Responses in the preset stream have a fixed 16-byte header followed by payload d
 [16..n]   payload data
 ```
 
-A response where `n < 272` signals end of stream. See [presets/list.md](./presets/list.md#phase-4--end-of-stream-detection).
+The stream is complete once it holds the length announced in the first response's inner header. See [presets/list.md](./presets/list.md#phase-4--end-of-stream-detection).

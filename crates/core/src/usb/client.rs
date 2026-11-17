@@ -1,12 +1,14 @@
 use super::{
-    parser::{parse_msgpack_stream, parse_setlists, response_payload},
+    parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status, stream_len},
+    preset_data::{parse_active_preset, parse_active_preset_info},
     protocol::*,
 };
 use crate::{
+    blocks::PresetChain,
     client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist},
+    models::{ActivePreset, Preset, Setlist, validate_preset_name},
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -36,6 +38,10 @@ const SEQ_BYTE_OFFSET: usize = 9;
 /// the high byte is always zero, so byte 11 carries the effective cmd.
 const CMD_BYTE_OFFSET: usize = 11;
 
+/// Offset of the 4-byte routing field, which names the channel a packet
+/// belongs to.
+const ROUTING_OFFSET: usize = 4;
+
 /// Maximum number of stale packets discarded while waiting for a matching
 /// sequence byte before declaring the session wedged.
 ///
@@ -62,6 +68,46 @@ fn fmt_byte_at(buf: &[u8], n: usize, offset: usize) -> String {
         format!("0x{:02X}", buf[offset])
     } else {
         "<short>".to_string()
+    }
+}
+
+/// One of the device's two request channels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Channel {
+    /// Preset names, selection and renaming.
+    Preset,
+    /// The active preset's contents.
+    Edit,
+}
+
+impl Channel {
+    /// Routing of host→device packets on this channel.
+    fn routing_out(self) -> [u8; 4] {
+        match self {
+            Self::Preset => PRESET_ROUTING_OUT,
+            Self::Edit => EDIT_ROUTING_OUT,
+        }
+    }
+
+    /// The handshake that opens this channel.
+    fn handshake(self) -> &'static [u8] {
+        match self {
+            Self::Preset => HANDSHAKE,
+            Self::Edit => EDIT_HANDSHAKE,
+        }
+    }
+
+    /// Whether a reply of `n` bytes in `buf` belongs to this channel.
+    ///
+    /// Edit-channel replies are checked by routing, so a stale preset-channel
+    /// packet with the same sequence byte is not mistaken for the reply.
+    fn owns_reply(self, buf: &[u8], n: usize) -> bool {
+        match self {
+            Self::Preset => true,
+            Self::Edit => {
+                buf[..n].get(ROUTING_OFFSET..ROUTING_OFFSET + 4) == Some(&EDIT_ROUTING_IN)
+            }
+        }
     }
 }
 
@@ -133,42 +179,16 @@ impl Client {
         Ok(client)
     }
 
-    /// Core retry loop for reading presets, extracted to avoid name collision
-    /// with the [`DeviceClient`] trait method of the same name.
-    fn read_presets_impl(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
-        let timeout = Duration::from_millis(TIMEOUT_MS);
-
-        for attempt in 0..MAX_INIT_RETRIES {
-            if attempt > 0 {
-                self.wait_with_backoff(attempt);
-            }
-            // Drain runs on every attempt, not just retries: the previous
-            // transaction's trailing packets persist in the IN buffer
-            // across calls on a cached client.
-            self.drain_stale_data();
-
-            match self.run_session(setlist, timeout) {
-                Ok(mut presets) => {
-                    presets.sort_unstable_by_key(|p| p.index);
-                    return Ok(presets);
-                }
-                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
-                    continue;
-                }
-                Err(e) => return Err(e),
-            }
-        }
-
-        Err(HxError::protocol(fl!(
-            "usb-device-unresponsive",
-            device = self.profile.name,
-            attempts = MAX_INIT_RETRIES
-        )))
-    }
-
-    /// Core retry loop for listing setlists, extracted to avoid name collision
-    /// with the [`DeviceClient`] trait method of the same name.
-    fn list_setlists_impl(&self) -> Result<Vec<Setlist>, HxError> {
+    /// Runs `session` until it succeeds, retrying with exponential back-off
+    /// while the device times out.
+    ///
+    /// The IN endpoint is drained before every attempt, not just retries:
+    /// the previous transaction's trailing packets persist in the buffer
+    /// across calls on a cached client.
+    fn with_retries<T>(
+        &self,
+        mut session: impl FnMut(Duration) -> Result<T, HxError>,
+    ) -> Result<T, HxError> {
         let timeout = Duration::from_millis(TIMEOUT_MS);
 
         for attempt in 0..MAX_INIT_RETRIES {
@@ -177,12 +197,9 @@ impl Client {
             }
             self.drain_stale_data();
 
-            match self.run_setlists_session(timeout) {
-                Ok(setlists) => return Ok(setlists),
-                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
-                    continue;
-                }
-                Err(e) => return Err(e),
+            match session(timeout) {
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {}
+                result => return result,
             }
         }
 
@@ -203,40 +220,18 @@ impl Client {
         self.session_init(&mut buf, timeout)?;
 
         self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
-        let n = self.read_for_seq(OPEN_PRESETS[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+        let n = self.read_reply(
+            Channel::Preset,
+            OPEN_PRESETS[SEQ_BYTE_OFFSET],
+            &mut buf,
+            timeout,
+        )?;
 
         let setlists = parse_setlists(response_payload(&buf, n)?)?;
 
         self.drain_stale_data();
 
         Ok(setlists)
-    }
-
-    /// Core retry loop for selecting a preset, extracted to avoid name collision
-    /// with the [`DeviceClient`] trait method of the same name.
-    fn select_preset_impl(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
-        let timeout = Duration::from_millis(TIMEOUT_MS);
-
-        for attempt in 0..MAX_INIT_RETRIES {
-            if attempt > 0 {
-                self.wait_with_backoff(attempt);
-            }
-            self.drain_stale_data();
-
-            match self.run_select_session(setlist, preset, timeout) {
-                Ok(_) => return Ok(()),
-                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
-                    continue;
-                }
-                Err(e) => return Err(e),
-            }
-        }
-
-        Err(HxError::protocol(fl!(
-            "usb-device-unresponsive",
-            device = self.profile.name,
-            attempts = MAX_INIT_RETRIES
-        )))
     }
 
     /// Internal routine to handle the session cycle specifically for changing a preset.
@@ -255,7 +250,7 @@ impl Client {
         let request = build_select_preset_request(seq, setlist, preset);
 
         self.handle.write_bulk(EP_OUT, &request, timeout)?;
-        self.read_for_seq(seq, &mut buf, timeout)?;
+        self.read_reply(Channel::Preset, seq, &mut buf, timeout)?;
 
         // Consume the burst of notifications triggered by the device after
         // the preset change before releasing the endpoint for the next operation.
@@ -264,39 +259,178 @@ impl Client {
         Ok(())
     }
 
+    /// Internal routine to handle the session cycle for renaming a preset.
+    ///
+    /// Retrying is safe: storing the same name twice leaves the device in
+    /// the same state as storing it once.
+    fn run_rename_session(
+        &self,
+        setlist: u8,
+        preset: u8,
+        name: &str,
+        timeout: Duration,
+    ) -> Result<(), HxError> {
+        let mut buf = vec![0u8; 512];
+
+        self.session_init(&mut buf, timeout)?;
+
+        // Like a selection, the rename is the first command after session
+        // init, so it takes seq 0x06.
+        let seq = 0x06;
+        let request = build_rename_preset_request(seq, setlist, preset, name);
+
+        self.handle.write_bulk(EP_OUT, &request, timeout)?;
+        let n = self.read_reply(Channel::Preset, seq, &mut buf, timeout)?;
+
+        // A write command's ACK reports `ACK_STATUS_OK` once the device has
+        // stored the change; anything else means the name was not stored.
+        let status = response_status(response_payload(&buf, n)?)?;
+        tracing::debug!(setlist, preset, ?status, "rename ACK");
+        if status != Some(ACK_STATUS_OK) {
+            return Err(HxError::protocol(fl!(
+                "usb-write-rejected",
+                device = self.profile.name,
+                status = status.map_or_else(|| "none".to_owned(), |s| s.to_string())
+            )));
+        }
+
+        // The device broadcasts the changed name to its other channels; clear
+        // those notifications before the next operation.
+        self.drain_stale_data();
+
+        Ok(())
+    }
+
     /// Executes a single, complete preset extraction session for `setlist`.
     fn run_session(&self, setlist: u8, timeout: Duration) -> Result<Vec<Preset>, HxError> {
-        let mut buf = vec![0u8; 512];
-        let mut raw_stream: Vec<u8> = Vec::with_capacity(4_096);
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
 
         self.session_init(&mut buf, timeout)?;
 
         // Phase 1: open presets resource
         self.handle.write_bulk(EP_OUT, OPEN_PRESETS, timeout)?;
-        self.read_for_seq(OPEN_PRESETS[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+        self.read_reply(
+            Channel::Preset,
+            OPEN_PRESETS[SEQ_BYTE_OFFSET],
+            &mut buf,
+            timeout,
+        )?;
 
-        // Phase 2: start stream for the requested setlist (first response
-        // carries payload)
+        // Phase 2: start stream for the requested setlist
         let open_stream = build_open_stream_request(OPEN_STREAM_SEQ, setlist);
         self.handle.write_bulk(EP_OUT, &open_stream, timeout)?;
-        let n = self.read_for_seq(OPEN_STREAM_SEQ, &mut buf, timeout)?;
-        self.collect_payload(&mut raw_stream, &buf, n);
+        let n = self.read_reply(Channel::Preset, OPEN_STREAM_SEQ, &mut buf, timeout)?;
 
-        // Phase 3: paginate until end-of-stream
-        let mut seq: u8 = PAGINATION_INITIAL_SEQ;
-        let mut offset: u32 = STREAM_INITIAL_OFFSET;
+        // Phase 3: paginate until the announced length has arrived
+        let raw_stream = self.read_stream(
+            Channel::Preset,
+            &mut buf,
+            n,
+            PAGINATION_INITIAL_SEQ,
+            timeout,
+        )?;
 
-        loop {
-            let request = build_pagination_request(seq, offset);
-            self.handle.write_bulk(EP_OUT, &request, timeout)?;
-            let n = self.read_for_seq(seq, &mut buf, timeout)?;
-            self.collect_payload(&mut raw_stream, &buf, n);
+        let mut presets = parse_msgpack_stream(&raw_stream, self.profile.preset_count, setlist)?;
+        presets.sort_unstable_by_key(|p| p.index);
+        Ok(presets)
+    }
 
-            // Phase 4: a response shorter than MAX_CHUNK_SIZE signals
-            // end-of-stream.
-            if n < MAX_CHUNK_SIZE {
+    /// Asks the edit channel which preset is active; a single request/reply.
+    fn run_active_preset_info_session(&self, timeout: Duration) -> Result<ActivePreset, HxError> {
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
+
+        self.open_edit_session(&mut buf, timeout)?;
+
+        self.handle
+            .write_bulk(EP_OUT, READ_ACTIVE_PRESET_INFO, timeout)?;
+        let n = self.read_reply(Channel::Edit, READ_ACTIVE_PRESET_SEQ, &mut buf, timeout)?;
+        tracing::debug!(hex = format!("{:02X?}", &buf[..n]), "active preset info");
+        let active =
+            parse_active_preset_info(response_payload(&buf, n)?, self.profile.preset_count)?;
+
+        self.drain_stale_data();
+
+        Ok(active)
+    }
+
+    /// Opens resource 6 on the edit channel.
+    fn open_edit_session(&self, buf: &mut [u8], timeout: Duration) -> Result<(), HxError> {
+        self.handshake(Channel::Edit, buf, timeout)?;
+        self.handle.write_bulk(EP_OUT, EDIT_SESSION_OPEN, timeout)?;
+        self.read_reply(
+            Channel::Edit,
+            EDIT_SESSION_OPEN[SEQ_BYTE_OFFSET],
+            buf,
+            timeout,
+        )?;
+        Ok(())
+    }
+
+    /// Reads the active preset's raw stream over the edit channel.
+    fn run_active_preset_session(&self, timeout: Duration) -> Result<Vec<u8>, HxError> {
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
+
+        self.open_edit_session(&mut buf, timeout)?;
+
+        self.handle
+            .write_bulk(EP_OUT, READ_ACTIVE_PRESET, timeout)?;
+        let n = self.read_reply(Channel::Edit, READ_ACTIVE_PRESET_SEQ, &mut buf, timeout)?;
+
+        let raw_stream = self.read_stream(
+            Channel::Edit,
+            &mut buf,
+            n,
+            EDIT_PAGINATION_INITIAL_SEQ,
+            timeout,
+        )?;
+
+        self.drain_stale_data();
+
+        Ok(raw_stream)
+    }
+
+    /// Reads a length-delimited stream whose start request was answered with
+    /// the `first_len` bytes in `buf`, requesting page after page from
+    /// `initial_seq` on until the announced length has arrived.
+    ///
+    /// The first reply that carries data announces the stream length. Chunk
+    /// sizes vary between devices and even between sessions, so the length,
+    /// not the size of a chunk, tells when the stream is complete. A
+    /// header-only reply (`cmd = 0x08`) carries no data: the device had no
+    /// chunk ready yet (e.g. right after another stream), and the next
+    /// request picks the stream up.
+    fn read_stream(
+        &self,
+        channel: Channel,
+        buf: &mut [u8],
+        first_len: usize,
+        initial_seq: u8,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, HxError> {
+        let mut raw_stream = Vec::with_capacity(8_192);
+        let mut expected_len = None;
+        self.collect_chunk(&mut raw_stream, &mut expected_len, buf, first_len)?;
+
+        let mut seq = initial_seq;
+        let mut offset = STREAM_INITIAL_OFFSET;
+
+        for _ in 0..MAX_STREAM_REQUESTS {
+            if expected_len.is_some_and(|len| raw_stream.len() >= len) {
                 break;
             }
+
+            let request = build_pagination_request(channel.routing_out(), seq, offset);
+            self.handle.write_bulk(EP_OUT, &request, timeout)?;
+            let n = self.read_reply(channel, seq, buf, timeout)?;
+            tracing::debug!(
+                ?channel,
+                seq = format!("0x{seq:02X}"),
+                len = n,
+                received = raw_stream.len(),
+                expected = ?expected_len,
+                "stream chunk",
+            );
+            self.collect_chunk(&mut raw_stream, &mut expected_len, buf, n)?;
 
             offset = offset
                 .checked_add(OFFSET_STEP)
@@ -304,18 +438,36 @@ impl Client {
             seq = seq.wrapping_add(1);
         }
 
-        parse_msgpack_stream(&raw_stream, self.profile.preset_count, setlist)
+        let expected_len = expected_len.unwrap_or(usize::MAX);
+        if raw_stream.len() < expected_len {
+            return Err(HxError::protocol(fl!(
+                "usb-stream-incomplete",
+                got = raw_stream.len(),
+                expected = expected_len
+            )));
+        }
+
+        Ok(raw_stream)
     }
 
-    /// Appends the MessagePack payload portion of a bulk IN response to `dest`.
-    ///
-    /// Each response is prefixed by [`RESPONSE_HEADER_SIZE`] bytes that are
-    /// not part of the MessagePack stream and must be skipped.
-    #[inline]
-    fn collect_payload(&self, dest: &mut Vec<u8>, buf: &[u8], n: usize) {
-        if n > RESPONSE_HEADER_SIZE {
-            dest.extend_from_slice(&buf[RESPONSE_HEADER_SIZE..n]);
+    /// Appends one stream reply to `raw_stream`, taking the stream length
+    /// from the first reply that carries data. Header-only replies carry
+    /// nothing and are skipped.
+    fn collect_chunk(
+        &self,
+        raw_stream: &mut Vec<u8>,
+        expected_len: &mut Option<usize>,
+        buf: &[u8],
+        n: usize,
+    ) -> Result<(), HxError> {
+        if n <= RESPONSE_HEADER_SIZE {
+            return Ok(());
         }
+        if expected_len.is_none() {
+            *expected_len = Some(stream_len(buf, n)?);
+        }
+        raw_stream.extend_from_slice(&buf[RESPONSE_HEADER_SIZE..n]);
+        Ok(())
     }
 
     /// Flushes the USB IN endpoint of any unread data.
@@ -328,7 +480,7 @@ impl Client {
     /// Consuming them here keeps the next session's request/response
     /// pairing aligned and also clears any leftover from a crashed
     /// session. The [`DRAIN_TIMEOUT_MS`] window assumes the tail finishes
-    /// within ~50 ms of the last packet; [`Self::read_for_seq`] guards
+    /// within ~50 ms of the last packet; [`Self::read_reply`] guards
     /// against the case where it doesn't.
     fn drain_stale_data(&self) {
         let timeout = Duration::from_millis(DRAIN_TIMEOUT_MS);
@@ -344,9 +496,9 @@ impl Client {
         }
     }
 
-    /// Reads from the IN endpoint until the response's sequence byte
-    /// matches `expected`, discarding stale or out-of-band packets along
-    /// the way.
+    /// Reads from the IN endpoint until a reply on `channel` with the
+    /// sequence byte `expected` arrives, discarding stale or out-of-band
+    /// packets along the way.
     ///
     /// Out-of-band packets that arrive between transactions can land in
     /// the IN buffer ahead of the ACK and shift every subsequent read by
@@ -356,18 +508,21 @@ impl Client {
     /// timeout: a genuine reply queued behind a stale packet returns
     /// immediately from the OS buffer regardless, and a shorter window
     /// would only risk misclassifying a slow-but-valid read as stale.
-    fn read_for_seq(
+    fn read_reply(
         &self,
+        channel: Channel,
         expected: u8,
         buf: &mut [u8],
         timeout: Duration,
     ) -> Result<usize, HxError> {
         for drops in 0..=MAX_STALE_DROPS {
             let n = self.handle.read_bulk(EP_IN, buf, timeout)?;
-            if n > SEQ_BYTE_OFFSET && buf[SEQ_BYTE_OFFSET] == expected {
+            if n > SEQ_BYTE_OFFSET && buf[SEQ_BYTE_OFFSET] == expected && channel.owns_reply(buf, n)
+            {
                 return Ok(n);
             }
             tracing::debug!(
+                ?channel,
                 expected = format!("0x{expected:02X}"),
                 got = fmt_byte_at(buf, n, SEQ_BYTE_OFFSET),
                 cmd = fmt_byte_at(buf, n, CMD_BYTE_OFFSET),
@@ -386,30 +541,36 @@ impl Client {
     /// The channel handshake is delegated to [`Self::handshake`], which
     /// retries internally on a dropped first write. The remaining four
     /// packets respond reliably once the channel is up and use the
-    /// standard write-then-[`Self::read_for_seq`] path.
+    /// standard write-then-[`Self::read_reply`] path.
     fn session_init(&self, buf: &mut [u8], timeout: Duration) -> Result<(), HxError> {
-        self.handshake(buf, timeout)?;
+        self.handshake(Channel::Preset, buf, timeout)?;
         for packet in &SESSION_INIT_SEQUENCE[1..] {
             self.handle.write_bulk(EP_OUT, packet, timeout)?;
-            self.read_for_seq(packet[SEQ_BYTE_OFFSET], buf, timeout)?;
+            self.read_reply(Channel::Preset, packet[SEQ_BYTE_OFFSET], buf, timeout)?;
         }
         Ok(())
     }
 
-    /// Performs the channel handshake, retrying internally on timeout.
+    /// Performs the handshake of `channel`, retrying internally on timeout.
     ///
-    /// The first [`HANDSHAKE`] write of a session is occasionally dropped
-    /// by the device while it finishes settling from the previous session.
-    /// A short-timeout resend handled here recovers in roughly
+    /// The first handshake of a session is occasionally dropped by the
+    /// device while it finishes settling from the previous session. A
+    /// short-timeout resend handled here recovers in roughly
     /// [`HANDSHAKE_RETRY_TIMEOUT_MS`] milliseconds, avoiding the outer
     /// retry's full read timeout plus exponential back-off per occurrence.
-    fn handshake(&self, buf: &mut [u8], outer_timeout: Duration) -> Result<(), HxError> {
+    fn handshake(
+        &self,
+        channel: Channel,
+        buf: &mut [u8],
+        outer_timeout: Duration,
+    ) -> Result<(), HxError> {
         let short = Duration::from_millis(HANDSHAKE_RETRY_TIMEOUT_MS);
-        let expected = HANDSHAKE[SEQ_BYTE_OFFSET];
+        let packet = channel.handshake();
+        let expected = packet[SEQ_BYTE_OFFSET];
 
         for attempt in 0..HANDSHAKE_INNER_RETRIES {
-            self.handle.write_bulk(EP_OUT, HANDSHAKE, outer_timeout)?;
-            match self.read_for_seq(expected, buf, short) {
+            self.handle.write_bulk(EP_OUT, packet, outer_timeout)?;
+            match self.read_reply(channel, expected, buf, short) {
                 Ok(_) => return Ok(()),
                 Err(HxError::Usb(rusb::Error::Timeout))
                     if attempt + 1 < HANDSHAKE_INNER_RETRIES => {}
@@ -448,24 +609,45 @@ impl DeviceClient for Client {
 
     #[inline]
     fn read_presets(&self) -> Result<Vec<Preset>, HxError> {
-        self.read_presets_impl(0)
+        self.read_setlist_presets(0)
     }
 
     #[inline]
     fn read_setlist_presets(&self, setlist: u8) -> Result<Vec<Preset>, HxError> {
         self.profile.validate_setlist(setlist)?;
-        self.read_presets_impl(setlist)
+        self.with_retries(|timeout| self.run_session(setlist, timeout))
     }
 
     #[inline]
     fn list_setlists(&self) -> Result<Vec<Setlist>, HxError> {
-        self.list_setlists_impl()
+        self.with_retries(|timeout| self.run_setlists_session(timeout))
     }
 
     #[inline]
     fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
         self.profile.validate_setlist(setlist)?;
-        self.select_preset_impl(setlist, preset)
+        self.with_retries(|timeout| self.run_select_session(setlist, preset, timeout))
+    }
+
+    #[inline]
+    fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError> {
+        self.profile.validate_setlist(setlist)?;
+        self.profile.validate_preset(preset)?;
+        validate_preset_name(name)?;
+        self.with_retries(|timeout| self.run_rename_session(setlist, preset, name, timeout))
+    }
+
+    #[inline]
+    fn read_active_preset(&self) -> Result<ActivePreset, HxError> {
+        self.profile.ensure_edit_channel()?;
+        self.with_retries(|timeout| self.run_active_preset_info_session(timeout))
+    }
+
+    #[inline]
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError> {
+        self.profile.ensure_edit_channel()?;
+        let stream = self.with_retries(|timeout| self.run_active_preset_session(timeout))?;
+        parse_active_preset(&stream)
     }
 }
 

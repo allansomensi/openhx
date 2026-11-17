@@ -92,6 +92,15 @@ openhx-cli preset list --setlist 2
 
 # Select a preset by setlist and slot (slot 0–127 within the setlist)
 openhx-cli preset select --setlist <SETLIST> --preset <PRESET>
+
+# Rename a preset (up to 16 printable ASCII characters)
+openhx-cli preset rename --setlist <SETLIST> --preset <PRESET> --name "<NAME>"
+
+# Show which preset is active on the device
+openhx-cli preset active
+
+# Show the blocks of the active preset, with their parameter values
+openhx-cli preset blocks
 ```
 
 ### GUI

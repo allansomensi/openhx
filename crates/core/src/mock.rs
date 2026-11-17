@@ -1,8 +1,9 @@
 use crate::{
+    blocks::PresetChain,
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist},
+    models::{ActivePreset, Preset, Setlist, validate_preset_name},
 };
 
 /// A simulated HX Stomp XL.
@@ -58,16 +59,44 @@ impl DeviceClient for MockClient {
         let profile = self.profile();
         profile.validate_setlist(setlist)?;
 
-        if u16::from(preset) >= profile.preset_count {
-            return Err(HxError::protocol(format!(
-                "preset {preset} out of range (0–{})",
-                profile.preset_count - 1
-            )));
-        }
+        profile.validate_preset(preset)?;
 
         eprintln!("[mock] select_preset(setlist={setlist}, preset={preset}) — OK");
 
         Ok(())
+    }
+
+    /// Simulates a preset rename command.
+    ///
+    /// Applies the same validation as the USB client and returns `Ok(())`.
+    /// The mock's preset list is static, so the new name is not kept.
+    fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError> {
+        let profile = self.profile();
+        profile.validate_setlist(setlist)?;
+        profile.validate_preset(preset)?;
+        validate_preset_name(name)?;
+
+        eprintln!("[mock] rename_preset(setlist={setlist}, preset={preset}, name={name:?}) — OK");
+
+        Ok(())
+    }
+
+    /// Refuses like the USB client does when the simulated device's edit
+    /// channel is unverified (the HX Stomp XL's is); otherwise reports the
+    /// first preset as active.
+    fn read_active_preset(&self) -> Result<ActivePreset, HxError> {
+        self.profile().ensure_edit_channel()?;
+        Ok(ActivePreset {
+            setlist: 0,
+            preset: 0,
+        })
+    }
+
+    /// Refuses for the same reason as [`Self::read_active_preset`];
+    /// otherwise reports an empty preset.
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError> {
+        self.profile().ensure_edit_channel()?;
+        Ok(PresetChain::default())
     }
 }
 
@@ -275,6 +304,34 @@ mod tests {
     fn mock_select_preset_setlist_out_of_range() {
         let client = MockClient::new();
         assert!(client.select_preset(1, 0).is_err());
+    }
+
+    #[test]
+    fn mock_rename_preset_accepts_valid_name() {
+        let client = MockClient::new();
+        assert!(client.rename_preset(0, 5, "New Name").is_ok());
+    }
+
+    #[test]
+    fn mock_rename_preset_rejects_invalid_input() {
+        let client = MockClient::new();
+        assert!(client.rename_preset(1, 0, "Name").is_err());
+        assert!(client.rename_preset(0, 128, "Name").is_err());
+        assert!(client.rename_preset(0, 0, "").is_err());
+        assert!(
+            client
+                .rename_preset(0, 0, "Way Too Long Preset Name")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn mock_refuses_to_read_blocks_like_a_stomp_xl() {
+        let client = MockClient::new();
+        assert!(matches!(
+            client.read_active_preset_blocks(),
+            Err(HxError::Protocol(_))
+        ));
     }
 
     #[test]

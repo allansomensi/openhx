@@ -12,6 +12,10 @@ pub struct DeviceProfile {
     /// Number of setlists the device holds. HX Stomp-family devices have a
     /// single setlist; Helix-family devices hold eight.
     pub setlist_count: u8,
+    /// Whether the edit channel (the active preset's contents) has been
+    /// verified on this device. Unverified devices are refused rather than
+    /// decoded on a guess.
+    pub edit_channel: bool,
 }
 
 impl DeviceProfile {
@@ -34,6 +38,33 @@ impl DeviceProfile {
                 device = self.name,
                 count = self.setlist_count,
                 max = self.setlist_count.saturating_sub(1)
+            )))
+        }
+    }
+
+    /// Checks that the edit channel may be used on this device.
+    pub fn ensure_edit_channel(&self) -> Result<(), HxError> {
+        if self.edit_channel {
+            Ok(())
+        } else {
+            Err(HxError::protocol(fl!(
+                "usb-edit-unsupported",
+                device = self.name
+            )))
+        }
+    }
+
+    /// Checks that `preset` addresses a slot within one of this device's
+    /// setlists.
+    pub fn validate_preset(&self, preset: u8) -> Result<(), HxError> {
+        if u16::from(preset) < self.preset_count {
+            Ok(())
+        } else {
+            Err(HxError::protocol(fl!(
+                "usb-preset-out-of-range",
+                preset = preset,
+                device = self.name,
+                max = self.preset_count.saturating_sub(1)
             )))
         }
     }
@@ -64,6 +95,7 @@ mod tests {
             product_id: 0x5678,
             preset_count: 258, // 0x0102 in hex
             setlist_count: 1,
+            edit_channel: false,
         };
         assert_eq!(profile.array_marker(), [0xDC, 0x01, 0x02]);
     }
@@ -76,6 +108,7 @@ mod tests {
             product_id: 0x0000,
             preset_count: 128,
             setlist_count: 8,
+            edit_channel: false,
         };
         assert!(profile.validate_setlist(0).is_ok());
         assert!(profile.validate_setlist(7).is_ok());
@@ -89,9 +122,40 @@ mod tests {
             product_id: 0x0000,
             preset_count: 128,
             setlist_count: 1,
+            edit_channel: false,
         };
         assert!(matches!(
             profile.validate_setlist(1),
+            Err(HxError::Protocol(_))
+        ));
+    }
+
+    #[test]
+    fn validate_preset_accepts_slots_below_count() {
+        let profile = DeviceProfile {
+            name: "Stomp",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 126,
+            setlist_count: 1,
+            edit_channel: false,
+        };
+        assert!(profile.validate_preset(0).is_ok());
+        assert!(profile.validate_preset(125).is_ok());
+    }
+
+    #[test]
+    fn validate_preset_rejects_slots_at_or_above_count() {
+        let profile = DeviceProfile {
+            name: "Stomp",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 126,
+            setlist_count: 1,
+            edit_channel: false,
+        };
+        assert!(matches!(
+            profile.validate_preset(126),
             Err(HxError::Protocol(_))
         ));
     }
@@ -104,6 +168,7 @@ mod tests {
             product_id: 0x4252,
             preset_count: 126,
             setlist_count: 1,
+            edit_channel: false,
         };
         assert_eq!(
             profile.to_string(),

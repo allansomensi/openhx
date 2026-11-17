@@ -1,6 +1,7 @@
 use crate::app::App;
 
 pub mod app;
+mod blocks_view;
 mod message;
 pub mod state;
 mod update;
@@ -26,6 +27,6 @@ pub fn run() -> iced::Result {
         .default_font(iced::Font::with_name("Liberation Sans"))
         .subscription(|app: &App| app.subscription())
         .centered()
-        .window_size((800.0, 600.0))
+        .window_size((1100.0, 720.0))
         .run()
 }

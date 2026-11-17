@@ -1,7 +1,8 @@
 use crate::{
+    blocks::PresetChain,
     device::profile::DeviceProfile,
     error::HxError,
-    models::{Preset, Setlist},
+    models::{ActivePreset, Preset, Setlist},
 };
 use std::sync::{Mutex, OnceLock};
 
@@ -39,6 +40,23 @@ pub trait DeviceClient: Send {
 
     /// Makes `preset` (a slot within `setlist`) the device's active preset.
     fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError>;
+
+    /// Stores `name` as the name of `preset` (a slot within `setlist`).
+    ///
+    /// `name` is validated with [`crate::models::validate_preset_name`]
+    /// before anything is sent to the device.
+    fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError>;
+
+    /// Asks the device which preset is active.
+    ///
+    /// Only supported on the HX Stomp so far; other devices return an error.
+    fn read_active_preset(&self) -> Result<ActivePreset, HxError>;
+
+    /// Reads the blocks of the device's active preset, in signal order,
+    /// and where its second path branches off and merges back.
+    ///
+    /// Only supported on the HX Stomp so far; other devices return an error.
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError>;
 }
 
 /// Creates a [`DeviceClient`] for the given device, or auto-detects one.

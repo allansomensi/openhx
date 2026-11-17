@@ -77,6 +77,48 @@ pub enum PresetAction {
         #[arg(short, long)]
         preset: u8,
     },
+
+    #[command(
+        about = fl!("cli-rename-preset-about"),
+        long_about = fl!("cli-rename-preset-long")
+    )]
+    Rename {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+
+        #[arg(
+            short,
+            long,
+            default_value_t = 0,
+            value_name = "SETLIST",
+            help = fl!("cli-setlist-help")
+        )]
+        setlist: u8,
+
+        #[arg(short, long)]
+        preset: u8,
+
+        #[arg(short, long, value_name = "NAME", help = fl!("cli-name-help"))]
+        name: String,
+    },
+
+    #[command(
+        about = fl!("cli-preset-active-about"),
+        long_about = fl!("cli-preset-active-long")
+    )]
+    Active {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+    },
+
+    #[command(
+        about = fl!("cli-preset-blocks-about"),
+        long_about = fl!("cli-preset-blocks-long")
+    )]
+    Blocks {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+    },
 }
 
 /// CLI-friendly wrapper around [`KnownDevice`] that implements [`clap::ValueEnum`].

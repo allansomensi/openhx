@@ -21,6 +21,14 @@ pub fn run() -> Result<(), HxError> {
                 setlist,
                 preset,
             } => commands::preset::select::execute(device, setlist, preset),
+            PresetAction::Rename {
+                device,
+                setlist,
+                preset,
+                name,
+            } => commands::preset::rename::execute(device, setlist, preset, &name),
+            PresetAction::Blocks { device } => commands::preset::blocks::execute(device),
+            PresetAction::Active { device } => commands::preset::active::execute(device),
         },
     }
 }

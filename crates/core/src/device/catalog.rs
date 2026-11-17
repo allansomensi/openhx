@@ -6,6 +6,7 @@ pub const PROFILE_HX_STOMP: DeviceProfile = DeviceProfile {
     product_id: 0x4246,
     preset_count: 126,
     setlist_count: 1,
+    edit_channel: true,
 };
 
 pub const PROFILE_HX_STOMP_XL: DeviceProfile = DeviceProfile {
@@ -14,6 +15,7 @@ pub const PROFILE_HX_STOMP_XL: DeviceProfile = DeviceProfile {
     product_id: 0x4253,
     preset_count: 128,
     setlist_count: 1,
+    edit_channel: false,
 };
 
 // Helix Floor streams the active setlist's 128 presets per session; the device
@@ -25,6 +27,7 @@ pub const PROFILE_HELIX_FLOOR: DeviceProfile = DeviceProfile {
     product_id: 0x4248,
     preset_count: 128,
     setlist_count: 8,
+    edit_channel: false,
 };
 
 pub const DEVICE_CATALOG: &[DeviceProfile] =

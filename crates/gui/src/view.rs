@@ -1,8 +1,11 @@
-use crate::{app::App, message::Message, state::AppState};
-use iced::widget::{button, column, container, pick_list, scrollable, text};
+use crate::{app::App, blocks_view, message::Message, state::AppState};
+use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_core::Setlist;
 use openhx_i18n::fl;
+
+/// Widget ID of the preset list's scrollable.
+pub const PRESET_LIST_ID: &str = "preset-list";
 
 /// One entry of the setlist picker, showing the name stored on the device.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -105,18 +108,22 @@ pub fn view(app: &App) -> Element<'_, Message> {
                 },
             );
 
-            let list_container = container(scrollable(presets_list).height(Length::Fill))
-                .width(Length::Fixed(215.0))
-                .padding(5)
-                .style(move |_theme: &Theme| container::Style {
-                    background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.02).into()),
-                    border: iced::Border {
-                        color: Color::from_rgba(0.5, 0.5, 0.5, 0.3),
-                        width: 1.0,
-                        radius: 8.0.into(),
-                    },
-                    ..Default::default()
-                });
+            let list_container = container(
+                scrollable(presets_list)
+                    .id(PRESET_LIST_ID)
+                    .height(Length::Fill),
+            )
+            .width(Length::Fixed(215.0))
+            .padding(5)
+            .style(move |_theme: &Theme| container::Style {
+                background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.02).into()),
+                border: iced::Border {
+                    color: Color::from_rgba(0.5, 0.5, 0.5, 0.3),
+                    width: 1.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            });
 
             let list_title = text("Presets").size(18);
 
@@ -139,7 +146,14 @@ pub fn view(app: &App) -> Element<'_, Message> {
             }
             let sidebar = sidebar.push(list_container);
 
-            column![header, sidebar]
+            let main = column![edit_panel(app), blocks_view::panel(app)]
+                .spacing(20)
+                .width(Length::Fill)
+                .height(Length::Fill);
+
+            let body = row![sidebar, main].spacing(20).height(Length::Fill);
+
+            column![header, body]
                 .spacing(20)
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -164,4 +178,56 @@ pub fn view(app: &App) -> Element<'_, Message> {
         .center_y(Length::Fill)
         .padding(20)
         .into()
+}
+
+/// Editor for the selected preset; currently its name.
+fn edit_panel(app: &App) -> Element<'_, Message> {
+    let title = text(fl!("edit-title")).size(18);
+
+    let Some(preset) = app.selected_preset else {
+        return column![title, text(fl!("edit-hint")).size(14)]
+            .spacing(10)
+            .width(Length::Fill)
+            .into();
+    };
+
+    let label = text(format!("{:03}   {}", preset, fl!("rename-label"))).size(14);
+
+    let mut name_input = text_input(&fl!("rename-placeholder"), &app.rename_input)
+        .size(14)
+        .padding(6)
+        .width(Length::Fill);
+    if !app.rename_pending {
+        name_input = name_input
+            .on_input(Message::RenameInputChanged)
+            .on_submit(Message::RenameSubmitted);
+    }
+
+    let button_label = if app.rename_pending {
+        fl!("rename-in-progress")
+    } else {
+        fl!("rename-button")
+    };
+    let rename_button = button(text(button_label).size(14))
+        .padding([6, 14])
+        .on_press_maybe((!app.rename_pending).then_some(Message::RenameSubmitted));
+
+    let mut panel = column![
+        title,
+        label,
+        row![name_input, rename_button]
+            .spacing(8)
+            .align_y(Alignment::Center),
+    ]
+    .spacing(10)
+    .width(Length::Fill);
+
+    if let Some(err) = &app.rename_error {
+        panel = panel.push(blocks_view::error_text(fl!(
+            "rename-failed",
+            error = err.clone()
+        )));
+    }
+
+    panel.into()
 }
