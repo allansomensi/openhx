@@ -4,7 +4,7 @@ This document describes how to store a new name for a preset.
 
 > **Prerequisites:** Complete the [session handshake](../session-handshake.md) before executing the phase described here. The sequence number below assumes a fresh session where `seq` starts at `0x06`.
 
-> **Status:** The request format follows the preset-channel conventions shared with [selecting a preset](./select.md) and matches what HX Edit sends, as documented by the [helix_usb](https://github.com/kempline/helix_usb) project. The reply has not been captured yet, so its status code is not interpreted (see [Response](#response)).
+> **Status:** Validated on an HX Stomp (firmware 3.80): the name is stored and read back from the [preset stream](./list.md). The request format follows the preset-channel conventions shared with [selecting a preset](./select.md) and matches what HX Edit sends, as documented by the [helix_usb](https://github.com/kempline/helix_usb) project.
 
 ---
 
@@ -67,7 +67,17 @@ Renaming setlist `0`, slot `12` to `Clean`:
 
 ### Response
 
-Perform one bulk read and match the sequence byte (`0x06`). The payload is a response envelope with a status code at key `103`, but what that code means differs per command: the [setlist reply](./setlists.md) reports `0` on success, while a successful [selection](./select.md#response) reports `1`. Until a rename reply has been captured, log the code rather than treating any value as an error.
+Perform one bulk read and match the sequence byte (`0x06`). The payload is the response envelope `{102: 1005, 103: status, 104: nil}`. A stored name is acknowledged with **status `1`**, the same code a successful [selection](./select.md#response) reports. Note that this differs from the [setlist reply](./setlists.md), which reports `0` on success. Treat any other status as a rejected rename.
+
+Captured from an HX Stomp:
+
+```
+19 00 00 18 EF 03 01 10 00 06 00 04 3E 02 00 00
+00 00 02 00 09 00 00 00 83 66 CD 03 ED 67 01 68
+C0 77 84 CD
+```
+
+The last three bytes pad the packet to a 4-byte boundary; unlike in requests, they are not zeroed and carry no meaning.
 
 ---
 

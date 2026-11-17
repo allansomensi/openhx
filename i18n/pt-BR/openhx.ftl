@@ -44,6 +44,7 @@ usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }
 usb-stream-offset-overflow = Estouro de offset do fluxo no payload USB.
 usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
 usb-preset-out-of-range = Preset { $preset } fora do intervalo: '{ $device }' possui presets 0–{ $max } por setlist.
+usb-write-rejected = '{ $device }' não confirmou a alteração (status { $status }).
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
 
 preset-name-empty = O nome do preset não pode ser vazio.

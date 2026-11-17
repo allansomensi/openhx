@@ -155,6 +155,12 @@ pub fn build_select_preset_request(seq: u8, setlist: u8, preset: u8) -> [u8; 40]
     ]
 }
 
+/// Status code (key `103`) a write command's ACK carries on success.
+///
+/// Captured from an HX Stomp for both preset selection and rename. Read
+/// replies differ: the setlist reply reports `0` on success.
+pub const ACK_STATUS_OK: u64 = 1;
+
 /// Builds a preset rename request (`cmd = 0x04`).
 ///
 /// The payload is a MsgPack structure:

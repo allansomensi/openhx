@@ -75,8 +75,10 @@ fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
 /// Returns the status code (key `103`) of a reply envelope, if present.
 ///
 /// The meaning of the code depends on the command: the setlist reply uses
-/// `0` for success, while a successful preset selection reports `1`. Write
-/// commands therefore expose the raw code instead of judging it.
+/// `0` for success, while write commands (select, rename) report
+/// [`ACK_STATUS_OK`]. The raw code is returned so each caller can judge it.
+///
+/// [`ACK_STATUS_OK`]: crate::usb::protocol::ACK_STATUS_OK
 pub fn response_status(payload: &[u8]) -> Result<Option<u64>, HxError> {
     let mut cursor = Cursor::new(payload);
     let root = read_value(&mut cursor)?;
@@ -306,6 +308,16 @@ mod tests {
         // HX Stomp ACK to a successful selection: {102: 1010, 103: 1, 104: nil}
         let payload = b"\x83\x66\xCD\x03\xF2\x67\x01\x68\xC0";
         assert_eq!(response_status(payload).unwrap(), Some(1));
+    }
+
+    #[test]
+    fn response_status_reads_code_from_captured_rename_ack() {
+        // HX Stomp ACK to a successful rename: {102: 1005, 103: 1, 104: nil}
+        let payload = b"\x83\x66\xCD\x03\xED\x67\x01\x68\xC0";
+        assert_eq!(
+            response_status(payload).unwrap(),
+            Some(crate::usb::protocol::ACK_STATUS_OK)
+        );
     }
 
     #[test]

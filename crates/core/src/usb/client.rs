@@ -314,12 +314,17 @@ impl Client {
         self.handle.write_bulk(EP_OUT, &request, timeout)?;
         let n = self.read_for_seq(seq, &mut buf, timeout)?;
 
-        // The status code's meaning differs per command (a successful select
-        // reports `1`, the setlist reply `0`), and no rename reply has been
-        // captured yet. Log it rather than guess which value means success;
-        // the arguments were validated before sending.
+        // A write command's ACK reports `ACK_STATUS_OK` once the device has
+        // stored the change; anything else means the name was not stored.
         let status = response_status(response_payload(&buf, n)?)?;
         tracing::debug!(setlist, preset, ?status, "rename ACK");
+        if status != Some(ACK_STATUS_OK) {
+            return Err(HxError::protocol(fl!(
+                "usb-write-rejected",
+                device = self.profile.name,
+                status = status.map_or_else(|| "none".to_owned(), |s| s.to_string())
+            )));
+        }
 
         // The device broadcasts the changed name to its other channels; clear
         // those notifications before the next operation.
