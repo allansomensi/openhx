@@ -4,6 +4,9 @@ use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_core::Setlist;
 use openhx_i18n::fl;
 
+/// Widget ID of the preset list's scrollable.
+pub const PRESET_LIST_ID: &str = "preset-list";
+
 /// One entry of the setlist picker, showing the name stored on the device.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetlistChoice {
@@ -105,18 +108,22 @@ pub fn view(app: &App) -> Element<'_, Message> {
                 },
             );
 
-            let list_container = container(scrollable(presets_list).height(Length::Fill))
-                .width(Length::Fixed(215.0))
-                .padding(5)
-                .style(move |_theme: &Theme| container::Style {
-                    background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.02).into()),
-                    border: iced::Border {
-                        color: Color::from_rgba(0.5, 0.5, 0.5, 0.3),
-                        width: 1.0,
-                        radius: 8.0.into(),
-                    },
-                    ..Default::default()
-                });
+            let list_container = container(
+                scrollable(presets_list)
+                    .id(PRESET_LIST_ID)
+                    .height(Length::Fill),
+            )
+            .width(Length::Fixed(215.0))
+            .padding(5)
+            .style(move |_theme: &Theme| container::Style {
+                background: Some(Color::from_rgba(0.0, 0.0, 0.0, 0.02).into()),
+                border: iced::Border {
+                    color: Color::from_rgba(0.5, 0.5, 0.5, 0.3),
+                    width: 1.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            });
 
             let list_title = text("Presets").size(18);
 

@@ -1,7 +1,9 @@
-use crate::{app::App, message::Message, state::AppState};
+use crate::{app::App, message::Message, state::AppState, view::PRESET_LIST_ID};
 use iced::Task;
+use iced::widget::operation::{RelativeOffset, snap_to};
 use openhx_core::{
-    Block, HxError, PRESET_NAME_MAX_LEN, reset_shared_device, validate_preset_name, with_device,
+    ActivePreset, Block, HxError, PRESET_NAME_MAX_LEN, reset_shared_device, validate_preset_name,
+    with_device,
 };
 use tracing::{debug, error, info};
 
@@ -165,8 +167,14 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::BlocksRequested => load_blocks(app, None),
-        Message::BlocksLoaded(blocks) => {
-            info!("Active preset has {} block(s)", blocks.len());
+        Message::ActivePresetLoaded { active, blocks } => {
+            info!(
+                "Active preset: setlist {}, slot {:03}, {} block(s)",
+                active.setlist,
+                active.preset,
+                blocks.len()
+            );
+            let scroll = show_active_preset(app, active);
             app.blocks = blocks;
             app.blocks_loading = false;
             app.blocks_error = None;
@@ -174,7 +182,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             if app.selected_block().is_none() {
                 app.selected_block = None;
             }
-            Task::none()
+            scroll
         }
         Message::BlocksLoadFailed(err) => {
             error!("Failed to read the active preset's blocks: {err}");
@@ -189,27 +197,54 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
     }
 }
 
-/// Reads the active preset's blocks, first switching to `select` (a
-/// `(setlist, slot)` pair) when given.
+/// Marks `active` as the selected preset, as on the device itself, and
+/// scrolls the preset list to it.
+///
+/// Only presets of the shown setlist can be marked, and a rename in progress
+/// keeps its selection.
+fn show_active_preset(app: &mut App, active: ActivePreset) -> Task<Message> {
+    if active.setlist != app.setlist
+        || app.rename_pending
+        || app.selected_preset == Some(active.preset)
+    {
+        return Task::none();
+    }
+
+    app.clear_selection();
+    app.selected_preset = Some(active.preset);
+    let Some(position) = app.presets.iter().position(|p| p.index == active.preset) else {
+        return Task::none();
+    };
+    app.rename_input = app.presets[position].name.clone();
+
+    let last = app.presets.len().saturating_sub(1).max(1);
+    let y = position as f32 / last as f32;
+    snap_to(PRESET_LIST_ID, RelativeOffset { x: 0.0, y })
+}
+
+/// Reads which preset is active and its blocks, first switching to `select`
+/// (a `(setlist, slot)` pair) when given.
 fn load_blocks(app: &mut App, select: Option<(u8, u8)>) -> Task<Message> {
     app.blocks_loading = true;
     app.blocks_error = None;
 
     Task::perform(
         async move {
-            tokio::task::spawn_blocking(move || -> Result<Vec<Block>, HxError> {
+            tokio::task::spawn_blocking(move || -> Result<(ActivePreset, Vec<Block>), HxError> {
                 with_device(|client| {
                     if let Some((setlist, preset)) = select {
                         client.select_preset(setlist, preset)?;
                     }
-                    client.read_active_preset_blocks()
+                    let active = client.read_active_preset()?;
+                    let blocks = client.read_active_preset_blocks()?;
+                    Ok((active, blocks))
                 })
             })
             .await
             .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
         },
         |result| match result {
-            Ok(blocks) => Message::BlocksLoaded(blocks),
+            Ok((active, blocks)) => Message::ActivePresetLoaded { active, blocks },
             Err(e) => Message::BlocksLoadFailed(e.to_string()),
         },
     )

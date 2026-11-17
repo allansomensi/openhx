@@ -26,6 +26,7 @@
 use crate::{
     blocks::{Block, BlockKind, POSITIONS_PER_PATH, ParamValue},
     error::HxError,
+    models::ActivePreset,
     usb::{
         parser::response_result,
         protocol::{RESPONSE_HEADER_SIZE, RESPONSE_PAYLOAD_OFFSET},
@@ -61,6 +62,32 @@ const SLOT_TYPE_BLOCK: u64 = 6;
 
 /// Slots per signal path: input, the block positions, output.
 const SLOTS_PER_PATH: usize = POSITIONS_PER_PATH as usize + 2;
+
+/// Result keys of the active-preset-info reply.
+const KEY_INFO_SETLIST: u64 = 107;
+const KEY_INFO_PRESET: u64 = 108;
+
+/// Parses the reply to [`READ_ACTIVE_PRESET_INFO`] into the active preset.
+///
+/// [`READ_ACTIVE_PRESET_INFO`]: crate::usb::protocol::READ_ACTIVE_PRESET_INFO
+pub fn parse_active_preset_info(
+    payload: &[u8],
+    preset_count: u16,
+) -> Result<ActivePreset, HxError> {
+    let result = response_result(payload)?;
+    let field = |key| {
+        get(&result, key)
+            .and_then(Value::as_u64)
+            .and_then(|v| u8::try_from(v).ok())
+    };
+
+    let setlist = field(KEY_INFO_SETLIST).ok_or_else(|| invalid("active setlist"))?;
+    let preset = field(KEY_INFO_PRESET)
+        .filter(|p| u16::from(*p) < preset_count)
+        .ok_or_else(|| invalid("active preset"))?;
+
+    Ok(ActivePreset { setlist, preset })
+}
 
 /// Parses the assembled active-preset stream into the preset's blocks.
 ///
@@ -246,6 +273,34 @@ mod tests {
         assert_eq!(amp.name(), "Line 6 Badonk (mono)");
         assert_eq!(amp.params.len(), 11);
         assert!(amp.cab_params.is_empty());
+    }
+
+    /// Payload of the active-preset-info reply, captured from an HX Stomp:
+    /// `{102: 1028, 103: 0, 104: {107: 0, 108: 31, 109: "New Preset", …}}`.
+    const ACTIVE_INFO_REPLY: &[u8] = &[
+        0x83, 0x66, 0xCD, 0x04, 0x04, 0x67, 0x00, 0x68, 0x86, 0x6B, 0xCD, 0x00, 0x00, 0x6C, 0xCD,
+        0x00, 0x1F, 0x6D, 0xAB, b'N', b'e', b'w', b' ', b'P', b'r', b'e', b's', b'e', b't', 0x00,
+        0x75, 0xC2, 0x53, 0x92, 0xCD, 0x1E, 0xF8, 0x00, 0x5C, 0x00,
+    ];
+
+    #[test]
+    fn active_preset_info_reads_setlist_and_slot() {
+        let active = parse_active_preset_info(ACTIVE_INFO_REPLY, 126).unwrap();
+        assert_eq!(
+            active,
+            ActivePreset {
+                setlist: 0,
+                preset: 31
+            }
+        );
+    }
+
+    #[test]
+    fn active_preset_info_rejects_slot_beyond_preset_count() {
+        assert!(matches!(
+            parse_active_preset_info(ACTIVE_INFO_REPLY, 31),
+            Err(HxError::Protocol(_))
+        ));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use super::{
     parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status, stream_len},
-    preset_data::parse_active_preset,
+    preset_data::{parse_active_preset, parse_active_preset_info},
     protocol::*,
 };
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     client::DeviceClient,
     device::{KnownDevice, PROFILE_HX_STOMP, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist, validate_preset_name},
+    models::{ActivePreset, Preset, Setlist, validate_preset_name},
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -425,6 +425,70 @@ impl Client {
         )))
     }
 
+    /// Core retry loop for asking which preset is active, extracted to avoid
+    /// name collision with the [`DeviceClient`] trait method.
+    fn read_active_preset_info_impl(&self) -> Result<ActivePreset, HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+            }
+
+            match self.run_active_preset_info_session(timeout) {
+                Ok(active) => return Ok(active),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Asks the edit channel which preset is active; a single request/reply.
+    fn run_active_preset_info_session(&self, timeout: Duration) -> Result<ActivePreset, HxError> {
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
+
+        self.drain_stale_data();
+
+        self.edit_handshake(&mut buf, timeout)?;
+
+        self.handle.write_bulk(EP_OUT, EDIT_SESSION_OPEN, timeout)?;
+        self.read_edit_reply(EDIT_SESSION_OPEN[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+
+        self.handle
+            .write_bulk(EP_OUT, READ_ACTIVE_PRESET_INFO, timeout)?;
+        let n = self.read_edit_reply(READ_ACTIVE_PRESET_SEQ, &mut buf, timeout)?;
+        tracing::debug!(hex = format!("{:02X?}", &buf[..n]), "active preset info");
+        let active =
+            parse_active_preset_info(response_payload(&buf, n)?, self.profile.preset_count)?;
+
+        self.drain_stale_data();
+
+        Ok(active)
+    }
+
+    /// Fails unless the edit channel has been verified on this device.
+    ///
+    /// The edit channel and block layout have only been checked on the
+    /// HX Stomp; other models are refused rather than decoded on a guess.
+    fn ensure_edit_channel_supported(&self) -> Result<(), HxError> {
+        if *self.profile == PROFILE_HX_STOMP {
+            Ok(())
+        } else {
+            Err(HxError::protocol(fl!(
+                "usb-edit-unsupported",
+                device = self.profile.name
+            )))
+        }
+    }
+
     /// Reads the active preset's raw stream over the edit channel.
     ///
     /// Mirrors the preset-list stream: the first reply announces the total
@@ -726,15 +790,14 @@ impl DeviceClient for Client {
     }
 
     #[inline]
+    fn read_active_preset(&self) -> Result<ActivePreset, HxError> {
+        self.ensure_edit_channel_supported()?;
+        self.read_active_preset_info_impl()
+    }
+
+    #[inline]
     fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
-        // The edit channel and block layout have only been verified on the
-        // HX Stomp; other models are refused rather than decoded on a guess.
-        if *self.profile != PROFILE_HX_STOMP {
-            return Err(HxError::protocol(fl!(
-                "usb-blocks-unsupported",
-                device = self.profile.name
-            )));
-        }
+        self.ensure_edit_channel_supported()?;
         self.read_active_preset_impl()
     }
 }

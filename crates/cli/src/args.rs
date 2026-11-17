@@ -103,6 +103,15 @@ pub enum PresetAction {
     },
 
     #[command(
+        about = fl!("cli-preset-active-about"),
+        long_about = fl!("cli-preset-active-long")
+    )]
+    Active {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+    },
+
+    #[command(
         about = fl!("cli-preset-blocks-about"),
         long_about = fl!("cli-preset-blocks-long")
     )]

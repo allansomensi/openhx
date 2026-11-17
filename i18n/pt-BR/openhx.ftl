@@ -54,6 +54,9 @@ cli-preset-renamed-success = Preset renomeado com sucesso!
 cli-preset-blocks-about = Mostra os blocos do preset ativo
 cli-preset-blocks-long = Lê o preset ativo do dispositivo e lista seus blocos na ordem do sinal, com seus modelos e valores de parâmetros.
 cli-total-blocks = Total: { $count } bloco(s).
+cli-preset-active-about = Mostra qual preset está ativo no dispositivo
+cli-preset-active-long = Consulta o preset ativo no dispositivo e exibe sua setlist, posição e nome.
+cli-active-preset = Preset ativo: setlist { $setlist }, preset { $preset } ({ $name })
 
 mock-mode-active = [mock] Rodando em modo simulado — hardware físico não é necessário.
 
@@ -65,7 +68,7 @@ usb-stream-incomplete = O stream de presets terminou antes do esperado: { $got }
 usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
 usb-preset-out-of-range = Preset { $preset } fora do intervalo: '{ $device }' possui presets 0–{ $max } por setlist.
 usb-write-rejected = '{ $device }' não confirmou a alteração (status { $status }).
-usb-blocks-unsupported = A leitura de blocos ainda não é suportada em '{ $device }'; por enquanto apenas o HX Stomp é suportado.
+usb-edit-unsupported = A leitura do preset ativo e de seus blocos ainda não é suportada em '{ $device }'; por enquanto apenas o HX Stomp é suportado.
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
 
 preset-name-empty = O nome do preset não pode ser vazio.

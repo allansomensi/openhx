@@ -20,6 +20,14 @@ impl Preset {
     }
 }
 
+/// The preset the device is currently playing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ActivePreset {
+    pub setlist: u8,
+    /// Slot within `setlist`.
+    pub preset: u8,
+}
+
 /// A named setlist: a bank of [`Preset`]s held by the device.
 ///
 /// HX Stomp-family devices have a single setlist; Helix-family devices hold

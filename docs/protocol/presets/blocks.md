@@ -73,6 +73,35 @@ The stream is length-delimited like the preset list: the first reply that carrie
 
 ---
 
+## Active Preset Info
+
+To learn *which* preset is active, send this instead of `READ_ACTIVE_PRESET` after Phase 2. It is a single request/reply, with no stream:
+
+```
+19 00 00 18 80 10 ED 03 00 03 00 04 09 10 00 00
+01 00 06 00 09 00 00 00 83 66 CD 04 04 64 17 65
+C0 00 00 00
+```
+
+`cmd = 0x04` with the payload `{102: 1028, 100: 23, 101: nil}`. The reply is a response envelope whose result starts with the preset's address and name:
+
+```
+{102: 1028, 103: 0, 104: {107: setlist, 108: preset, 109: name, …}}
+```
+
+Captured from an HX Stomp with slot `031` ("New Preset") active:
+
+```
+38 00 00 18 ED 03 80 10 00 03 00 04 1A 02 00 00
+00 00 06 00 28 00 00 00 83 66 CD 04 04 67 00 68
+86 6B CD 00 00 6C CD 00 1F 6D AB 4E 65 77 20 50
+72 65 73 65 74 00 75 C2 53 92 CD 1E F8 00 5C 00
+```
+
+`107` and `108` are encoded as `uint16`. The remaining keys (`117`, `83`) are not decoded.
+
+---
+
 ## Payload
 
 The assembled stream holds the 8-byte inner header followed by a response envelope:

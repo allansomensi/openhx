@@ -3,7 +3,7 @@ use crate::{
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist, validate_preset_name},
+    models::{ActivePreset, Preset, Setlist, validate_preset_name},
 };
 use openhx_i18n::fl;
 
@@ -87,11 +87,19 @@ impl DeviceClient for MockClient {
         Ok(())
     }
 
-    /// Refuses like the USB client does: reading blocks is only supported on
-    /// the HX Stomp, and the mock simulates an HX Stomp XL.
+    /// Refuses like the USB client does: the edit channel is only supported
+    /// on the HX Stomp, and the mock simulates an HX Stomp XL.
+    fn read_active_preset(&self) -> Result<ActivePreset, HxError> {
+        Err(HxError::protocol(fl!(
+            "usb-edit-unsupported",
+            device = self.profile().name
+        )))
+    }
+
+    /// Refuses for the same reason as [`Self::read_active_preset`].
     fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
         Err(HxError::protocol(fl!(
-            "usb-blocks-unsupported",
+            "usb-edit-unsupported",
             device = self.profile().name
         )))
     }

@@ -235,6 +235,54 @@ pub const READ_ACTIVE_PRESET: &[u8] = &[
     0x00,
 ];
 
+/// Asks which preset is active (`cmd = 0x04`, `seq = 0x03`).
+///
+/// The payload is a MsgPack structure: `{102: 1028, 100: 23, 101: nil}`. The
+/// reply's result is a map starting `{107: setlist, 108: preset, 109: name}`.
+/// Like [`READ_ACTIVE_PRESET`], it is the first request after opening the
+/// edit channel, so it reuses that sequence number.
+pub const READ_ACTIVE_PRESET_INFO: &[u8] = &[
+    0x19,
+    0x00,
+    0x00,
+    0x18, // Magic header with length for 36-byte packet
+    0x80,
+    0x10,
+    0xED,
+    0x03, // Edit-channel routing
+    0x00,
+    READ_ACTIVE_PRESET_SEQ,
+    0x00,
+    0x04, // Sequence and Command (0x04)
+    // Inner resource header
+    0x09,
+    0x10,
+    0x00,
+    0x00,
+    0x01,
+    0x00,
+    0x06,
+    0x00,
+    0x09,
+    0x00,
+    0x00,
+    0x00, // MsgPack payload length (9 bytes)
+    // MsgPack Payload
+    0x83, // fixmap(3 items)
+    0x66,
+    0xCD,
+    0x04,
+    0x04, // Key 102 (Transaction ID): 1028
+    0x64,
+    0x17, // Key 100 (Command Type): 23 (Active preset info)
+    0x65,
+    0xC0, // Key 101 (Args): nil
+    // Padding to align to 4-byte boundary
+    0x00,
+    0x00,
+    0x00,
+];
+
 /// Sequence number of the first edit-channel pagination request.
 pub const EDIT_PAGINATION_INITIAL_SEQ: u8 = READ_ACTIVE_PRESET_SEQ + 1;
 
