@@ -48,6 +48,8 @@ pub trait DeviceClient: Send {
     fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError>;
 
     /// Reads the blocks of the device's active preset, in signal order.
+    ///
+    /// Only supported on the HX Stomp so far; other devices return an error.
     fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError>;
 }
 

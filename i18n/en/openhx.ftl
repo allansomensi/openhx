@@ -65,6 +65,7 @@ usb-stream-incomplete = Preset stream ended early: received { $got } of { $expec
 usb-setlist-out-of-range = Setlist { $setlist } is out of range: '{ $device }' holds { $count } setlist(s) (0–{ $max }).
 usb-preset-out-of-range = Preset { $preset } is out of range: '{ $device }' holds presets 0–{ $max } per setlist.
 usb-write-rejected = '{ $device }' did not confirm the change (status { $status }).
+usb-blocks-unsupported = Reading blocks is not supported on '{ $device }' yet; so far only the HX Stomp is supported.
 usb-retry-attempt = [{ $device }] Attempt { $current }/{ $total } failed. Retrying in { $wait_ms } ms...
 
 preset-name-empty = Preset name must not be empty.

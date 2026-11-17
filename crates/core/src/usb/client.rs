@@ -6,7 +6,7 @@ use super::{
 use crate::{
     blocks::Block,
     client::DeviceClient,
-    device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
+    device::{KnownDevice, PROFILE_HX_STOMP, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
     models::{Preset, Setlist, validate_preset_name},
 };
@@ -727,6 +727,14 @@ impl DeviceClient for Client {
 
     #[inline]
     fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
+        // The edit channel and block layout have only been verified on the
+        // HX Stomp; other models are refused rather than decoded on a guess.
+        if *self.profile != PROFILE_HX_STOMP {
+            return Err(HxError::protocol(fl!(
+                "usb-blocks-unsupported",
+                device = self.profile.name
+            )));
+        }
         self.read_active_preset_impl()
     }
 }

@@ -23,7 +23,6 @@ pub enum BlockCategory {
     ImpulseResponse,
     VolumePan,
     SendReturn,
-    Looper,
 }
 
 impl BlockCategory {
@@ -46,7 +45,6 @@ impl BlockCategory {
             Self::ImpulseResponse => "Impulse Response",
             Self::VolumePan => "Volume/Pan",
             Self::SendReturn => "Send/Return",
-            Self::Looper => "Looper",
         }
     }
 
@@ -69,7 +67,6 @@ impl BlockCategory {
             Self::ImpulseResponse => "IR",
             Self::VolumePan => "VOL",
             Self::SendReturn => "S/R",
-            Self::Looper => "LPR",
         }
     }
 }
@@ -131,8 +128,6 @@ pub enum BlockKind {
     Model(u16),
     /// An amp with its cab, sharing one block.
     AmpCab { amp: u16, cab: u16 },
-    /// The looper, which has no model ID.
-    Looper,
 }
 
 /// A processing block in one of the preset's signal paths.
@@ -157,7 +152,6 @@ impl Block {
         match self.kind {
             BlockKind::Model(id) => model_info(id).map(|m| m.category),
             BlockKind::AmpCab { .. } => Some(BlockCategory::AmpCab),
-            BlockKind::Looper => Some(BlockCategory::Looper),
         }
     }
 
@@ -168,7 +162,6 @@ impl Block {
         match self.kind {
             BlockKind::Model(id) => model_name(id),
             BlockKind::AmpCab { amp, cab } => format!("{} + {}", model_name(amp), model_name(cab)),
-            BlockKind::Looper => BlockCategory::Looper.label().to_owned(),
         }
     }
 }

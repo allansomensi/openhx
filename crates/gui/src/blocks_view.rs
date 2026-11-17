@@ -43,18 +43,7 @@ fn category_color(category: Option<BlockCategory>) -> Color {
         ) => rgb(0xBE4D4D),
         Some(BlockCategory::ImpulseResponse) => rgb(0xB96695),
         Some(BlockCategory::VolumePan | BlockCategory::SendReturn) => rgb(0x3F9C9A),
-        Some(BlockCategory::Looper) => rgb(0xD9D9D9),
         None => UNKNOWN_COLOR,
-    }
-}
-
-/// Text color that stays readable on `background`.
-fn label_color(background: Color) -> Color {
-    let luma = 0.299 * background.r + 0.587 * background.g + 0.114 * background.b;
-    if luma > 0.7 {
-        Color::from_rgb(0.1, 0.1, 0.1)
-    } else {
-        Color::WHITE
     }
 }
 
@@ -172,7 +161,6 @@ fn block_box(
         }
         None => ("", EMPTY_COLOR),
     };
-    let foreground = label_color(background);
 
     let content = container(text(label).size(12))
         .width(Length::Fill)
@@ -188,7 +176,7 @@ fn block_box(
             let hovered = matches!(status, button::Status::Hovered);
             button::Style {
                 background: Some(Background::Color(background)),
-                text_color: foreground,
+                text_color: Color::WHITE,
                 border: Border {
                     color: if selected || hovered {
                         Color::WHITE

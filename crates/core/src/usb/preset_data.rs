@@ -18,8 +18,8 @@
 //!   type 0–3   path input/output; not a block
 //!   type 6     block: { 24: { 23: dual, 25: model, 26: second model },
 //!                       10: enabled, 11: params, 12: second params }
-//!   type 7     looper
 //!   type 8     empty position (body is nil)
+//!   other      not decoded yet (e.g. type 7, the looper); skipped
 //! params:     { 2: count, 3: …, 4: [values] }
 //! ```
 
@@ -53,15 +53,11 @@ const KEY_MODEL_B: u64 = 26;
 const KEY_ENABLED: u64 = 10;
 const KEY_PARAMS_A: u64 = 11;
 const KEY_PARAMS_B: u64 = 12;
-/// Looper parameters live under the same key as path input/output parameters.
-const KEY_LOOPER_PARAMS: u64 = 7;
 /// Parameter map key holding the value array.
 const KEY_PARAM_VALUES: u64 = 4;
 
 /// Slot type of a regular block.
 const SLOT_TYPE_BLOCK: u64 = 6;
-/// Slot type of the looper.
-const SLOT_TYPE_LOOPER: u64 = 7;
 
 /// Slots per signal path: input, the block positions, output.
 const SLOTS_PER_PATH: usize = POSITIONS_PER_PATH as usize + 2;
@@ -146,17 +142,12 @@ fn parse_slot(slot: &Value, path: u8, position: u8) -> Result<Option<Block>, HxE
                 cab_params: params(get(body, KEY_PARAMS_B)),
             }
         }
-        (SLOT_TYPE_LOOPER, Some(body)) => Block {
-            path,
-            position,
-            kind: BlockKind::Looper,
-            enabled: enabled(body),
-            params: params(get(body, KEY_LOOPER_PARAMS)),
-            cab_params: Vec::new(),
-        },
         (slot_type, _) => {
+            // Types 0–3 are path inputs/outputs and 8 is an empty position.
+            // Anything else (e.g. 7, the looper) is a block type that has not
+            // been decoded yet.
             if !matches!(slot_type, 0..=3 | 8) {
-                tracing::debug!(path, position, slot_type, "skipping unknown slot type");
+                tracing::warn!(path, position, slot_type, "skipping undecoded block type");
             }
             return Ok(None);
         }

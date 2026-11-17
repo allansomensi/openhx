@@ -5,6 +5,7 @@ use crate::{
     error::HxError,
     models::{Preset, Setlist, validate_preset_name},
 };
+use openhx_i18n::fl;
 
 /// A simulated HX Stomp XL.
 pub struct MockClient;
@@ -86,14 +87,15 @@ impl DeviceClient for MockClient {
         Ok(())
     }
 
-    /// Returns the blocks of a preset captured from a real HX Stomp.
+    /// Refuses like the USB client does: reading blocks is only supported on
+    /// the HX Stomp, and the mock simulates an HX Stomp XL.
     fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
-        crate::usb::preset_data::parse_active_preset(MOCK_ACTIVE_PRESET)
+        Err(HxError::protocol(fl!(
+            "usb-blocks-unsupported",
+            device = self.profile().name
+        )))
     }
 }
-
-/// Active-preset stream captured from an HX Stomp.
-static MOCK_ACTIVE_PRESET: &[u8] = include_bytes!("usb/fixtures/active_preset_hx_stomp.bin");
 
 static MOCK_PRESET_NAMES: [&str; 128] = [
     "Clean Tweed",
@@ -321,10 +323,12 @@ mod tests {
     }
 
     #[test]
-    fn mock_active_preset_has_blocks() {
+    fn mock_refuses_to_read_blocks_like_a_stomp_xl() {
         let client = MockClient::new();
-        let blocks = client.read_active_preset_blocks().unwrap();
-        assert!(!blocks.is_empty());
+        assert!(matches!(
+            client.read_active_preset_blocks(),
+            Err(HxError::Protocol(_))
+        ));
     }
 
     #[test]
