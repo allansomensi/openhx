@@ -1,6 +1,6 @@
 use crate::{message::Message, state::AppState, update, view, worker};
 use iced::{Subscription, Task};
-use openhx_core::{Preset, Setlist};
+use openhx_core::{Block, Preset, Setlist};
 
 pub struct App {
     pub state: AppState,
@@ -18,6 +18,14 @@ pub struct App {
     pub rename_pending: bool,
     /// Why the last rename failed, shown under the name field.
     pub rename_error: Option<String>,
+    /// Blocks of the device's active preset, in signal order.
+    pub blocks: Vec<Block>,
+    /// `true` while the active preset's blocks are being read.
+    pub blocks_loading: bool,
+    /// Why reading the blocks failed, if it did.
+    pub blocks_error: Option<String>,
+    /// Block whose settings are shown, as `(path, position)`.
+    pub selected_block: Option<(u8, u8)>,
 }
 
 impl Default for App {
@@ -33,6 +41,10 @@ impl Default for App {
             rename_input: String::new(),
             rename_pending: false,
             rename_error: None,
+            blocks: Vec::new(),
+            blocks_loading: false,
+            blocks_error: None,
+            selected_block: None,
         }
     }
 }
@@ -44,6 +56,14 @@ impl App {
         self.rename_input.clear();
         self.rename_pending = false;
         self.rename_error = None;
+    }
+
+    /// The block whose settings are shown, if it still exists.
+    pub fn selected_block(&self) -> Option<&Block> {
+        let (path, position) = self.selected_block?;
+        self.blocks
+            .iter()
+            .find(|b| b.path == path && b.position == position)
     }
 
     pub fn new() -> (Self, Task<Message>) {

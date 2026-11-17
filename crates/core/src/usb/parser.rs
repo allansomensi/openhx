@@ -64,7 +64,7 @@ pub fn stream_len(buf: &[u8], n: usize) -> Result<usize, HxError> {
 
 /// Decodes a response envelope (`{102: txn, 103: status, 104: result}`) and
 /// returns its result value, rejecting a non-zero status.
-fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
+pub(crate) fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
     let mut cursor = Cursor::new(payload);
     let root = read_value(&mut cursor)?;
 

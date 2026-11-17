@@ -1,8 +1,10 @@
 use super::{
     parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status, stream_len},
+    preset_data::parse_active_preset,
     protocol::*,
 };
 use crate::{
+    blocks::Block,
     client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
@@ -397,6 +399,141 @@ impl Client {
         parse_msgpack_stream(&raw_stream, self.profile.preset_count, setlist)
     }
 
+    /// Core retry loop for reading the active preset's blocks, extracted to
+    /// avoid name collision with the [`DeviceClient`] trait method.
+    fn read_active_preset_impl(&self) -> Result<Vec<Block>, HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+            }
+
+            match self.run_active_preset_session(timeout) {
+                Ok(stream) => return parse_active_preset(&stream),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Reads the active preset's raw stream over the edit channel.
+    ///
+    /// Mirrors the preset-list stream: the first reply announces the total
+    /// length and later replies are requested page by page until it has
+    /// arrived. Only edit-channel replies are accepted.
+    fn run_active_preset_session(&self, timeout: Duration) -> Result<Vec<u8>, HxError> {
+        let mut buf = vec![0u8; STREAM_BUFFER_SIZE];
+        let mut raw_stream: Vec<u8> = Vec::with_capacity(8_192);
+
+        self.drain_stale_data();
+
+        self.edit_handshake(&mut buf, timeout)?;
+
+        self.handle.write_bulk(EP_OUT, EDIT_SESSION_OPEN, timeout)?;
+        self.read_edit_reply(EDIT_SESSION_OPEN[SEQ_BYTE_OFFSET], &mut buf, timeout)?;
+
+        self.handle
+            .write_bulk(EP_OUT, READ_ACTIVE_PRESET, timeout)?;
+        let n = self.read_edit_reply(READ_ACTIVE_PRESET_SEQ, &mut buf, timeout)?;
+
+        // The first data-carrying reply announces the stream length. When the
+        // device is still busy (e.g. right after a preset-list stream) it
+        // answers the start request header-only, and the length arrives with
+        // the first data chunk instead.
+        let mut expected_len = None;
+        self.collect_active_preset_chunk(&mut raw_stream, &mut expected_len, &buf, n)?;
+
+        let mut seq = EDIT_PAGINATION_INITIAL_SEQ;
+        let mut offset = STREAM_INITIAL_OFFSET;
+
+        for _ in 0..MAX_STREAM_REQUESTS {
+            if expected_len.is_some_and(|len| raw_stream.len() >= len) {
+                break;
+            }
+
+            let request = build_edit_pagination_request(seq, offset);
+            self.handle.write_bulk(EP_OUT, &request, timeout)?;
+            let n = self.read_edit_reply(seq, &mut buf, timeout)?;
+            tracing::debug!(
+                seq = format!("0x{seq:02X}"),
+                len = n,
+                received = raw_stream.len(),
+                expected = ?expected_len,
+                "active preset chunk",
+            );
+            self.collect_active_preset_chunk(&mut raw_stream, &mut expected_len, &buf, n)?;
+
+            offset = offset
+                .checked_add(OFFSET_STEP)
+                .ok_or_else(|| HxError::protocol(fl!("usb-stream-offset-overflow")))?;
+            seq = seq.wrapping_add(1);
+        }
+
+        self.drain_stale_data();
+
+        let expected_len = expected_len.unwrap_or(usize::MAX);
+        if raw_stream.len() < expected_len {
+            return Err(HxError::protocol(fl!(
+                "usb-stream-incomplete",
+                got = raw_stream.len(),
+                expected = expected_len
+            )));
+        }
+
+        Ok(raw_stream)
+    }
+
+    /// Appends one active-preset reply to `raw_stream`, taking the stream
+    /// length from the first reply that carries data. Header-only replies
+    /// carry nothing and are skipped.
+    fn collect_active_preset_chunk(
+        &self,
+        raw_stream: &mut Vec<u8>,
+        expected_len: &mut Option<usize>,
+        buf: &[u8],
+        n: usize,
+    ) -> Result<(), HxError> {
+        if n <= RESPONSE_HEADER_SIZE {
+            return Ok(());
+        }
+        if expected_len.is_none() {
+            *expected_len = Some(stream_len(buf, n)?);
+        }
+        self.collect_payload(raw_stream, buf, n);
+        Ok(())
+    }
+
+    /// Like [`Self::read_for_seq`], but also requires the edit channel's
+    /// routing, so a stale preset-channel packet with the same sequence byte
+    /// is not mistaken for the reply.
+    fn read_edit_reply(
+        &self,
+        expected: u8,
+        buf: &mut [u8],
+        timeout: Duration,
+    ) -> Result<usize, HxError> {
+        for _ in 0..=MAX_STALE_DROPS {
+            let n = self.read_for_seq(expected, buf, timeout)?;
+            if n >= 8 && buf[4..8] == EDIT_ROUTING_IN {
+                return Ok(n);
+            }
+            tracing::debug!(
+                hex = format!("{:02X?}", &buf[..n.min(16)]),
+                "discarding reply from another channel",
+            );
+        }
+        Err(HxError::Usb(rusb::Error::Timeout))
+    }
+
     /// Appends the MessagePack payload portion of a bulk IN response to `dest`.
     ///
     /// Each response is prefixed by [`RESPONSE_HEADER_SIZE`] bytes that are
@@ -509,6 +646,28 @@ impl Client {
         Err(HxError::Usb(rusb::Error::Timeout))
     }
 
+    /// Performs the edit-channel handshake, retrying internally on timeout.
+    ///
+    /// Like the preset channel's [`Self::handshake`], the first handshake of
+    /// a new edit session is occasionally dropped while the device settles
+    /// from the previous one; a short-timeout resend recovers from that.
+    fn edit_handshake(&self, buf: &mut [u8], outer_timeout: Duration) -> Result<(), HxError> {
+        let short = Duration::from_millis(HANDSHAKE_RETRY_TIMEOUT_MS);
+        let expected = EDIT_HANDSHAKE[SEQ_BYTE_OFFSET];
+
+        for attempt in 0..HANDSHAKE_INNER_RETRIES {
+            self.handle
+                .write_bulk(EP_OUT, EDIT_HANDSHAKE, outer_timeout)?;
+            match self.read_edit_reply(expected, buf, short) {
+                Ok(_) => return Ok(()),
+                Err(HxError::Usb(rusb::Error::Timeout))
+                    if attempt + 1 < HANDSHAKE_INNER_RETRIES => {}
+                Err(e) => return Err(e),
+            }
+        }
+        Err(HxError::Usb(rusb::Error::Timeout))
+    }
+
     /// Suspends the current thread according to the exponential backoff curve.
     ///
     /// Called when entering retry iteration `attempt` (≥ 1), so `attempt`
@@ -564,6 +723,11 @@ impl DeviceClient for Client {
         self.profile.validate_preset(preset)?;
         validate_preset_name(name)?;
         self.rename_preset_impl(setlist, preset, name)
+    }
+
+    #[inline]
+    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
+        self.read_active_preset_impl()
     }
 }
 

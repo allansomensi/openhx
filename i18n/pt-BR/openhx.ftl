@@ -11,6 +11,22 @@ rename-placeholder = Nome do preset
 rename-button = Renomear
 rename-in-progress = Renomeando...
 rename-failed = Falha ao renomear: { $error }
+blocks-title = Blocos do Preset Atual
+blocks-refresh = Atualizar Blocos
+blocks-loading = Lendo blocos...
+blocks-load-failed = Não foi possível ler os blocos do preset: { $error }
+blocks-empty = Este preset não possui blocos.
+block-hint = Selecione um bloco para ver suas configurações.
+block-device-type = Tipo de Dispositivo
+block-module-name = Nome do Módulo
+block-settings = Configurações do Módulo
+block-unknown-category = Desconhecido
+block-position = Caminho { $path }, posição { $position }
+block-param = Parâmetro { $number }
+block-cab-param = Parâmetro do gabinete { $number }
+block-on = ligado
+block-off = desligado
+block-read-only = Os valores são somente leitura; alterá-los ainda não é suportado.
 
 cli-list-presets-about = Lista todos os presets de um dispositivo Line 6 conectado.
 cli-list-presets-long = Verifica o barramento USB automaticamente se nenhum dispositivo for especificado.
@@ -35,6 +51,9 @@ cli-rename-preset-long = Grava um novo nome para o preset nos índices de setlis
 cli-name-help = Novo nome do preset (até 16 caracteres ASCII imprimíveis).
 cli-renaming-preset = Renomeando setlist { $setlist }, preset { $preset } para "{ $name }"...
 cli-preset-renamed-success = Preset renomeado com sucesso!
+cli-preset-blocks-about = Mostra os blocos do preset ativo
+cli-preset-blocks-long = Lê o preset ativo do dispositivo e lista seus blocos na ordem do sinal, com seus modelos e valores de parâmetros.
+cli-total-blocks = Total: { $count } bloco(s).
 
 mock-mode-active = [mock] Rodando em modo simulado — hardware físico não é necessário.
 
@@ -70,3 +89,4 @@ msgpack-setlist-not-map = A entrada da setlist não é um mapa.
 msgpack-setlist-map-empty = O mapa da entrada da setlist está vazio.
 msgpack-setlist-index-not-int = O índice da setlist não é um número inteiro.
 msgpack-setlist-name-invalid = Setlist { $index }: o nome não é uma string.
+preset-data-invalid = Os dados do preset ativo estão malformados (em { $field }).

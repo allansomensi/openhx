@@ -1,7 +1,7 @@
 use crate::{app::App, message::Message, state::AppState};
 use iced::Task;
 use openhx_core::{
-    HxError, PRESET_NAME_MAX_LEN, reset_shared_device, validate_preset_name, with_device,
+    Block, HxError, PRESET_NAME_MAX_LEN, reset_shared_device, validate_preset_name, with_device,
 };
 use tracing::{debug, error, info};
 
@@ -25,7 +25,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.state = AppState::Connected;
             app.error_log = None;
             app.clear_selection();
-            Task::none()
+            load_blocks(app, None)
         }
         Message::DeviceDisconnected => {
             info!("Device disconnected");
@@ -36,6 +36,10 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.setlist = 0;
             app.presets.clear();
             app.clear_selection();
+            app.blocks.clear();
+            app.blocks_loading = false;
+            app.blocks_error = None;
+            app.selected_block = None;
             Task::none()
         }
         Message::SetlistChosen(setlist) => {
@@ -84,19 +88,9 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
                 app.rename_input = preset.name.clone();
             }
 
-            tokio::task::spawn_blocking(move || {
-                match with_device(|client| client.select_preset(setlist, index)) {
-                    Ok(()) => {}
-                    Err(HxError::DeviceNotFound) => {
-                        error!("Cannot select preset {index:03}: device not connected");
-                    }
-                    Err(e) => {
-                        error!("Failed to select preset {index:03}: {e}");
-                    }
-                }
-            });
-
-            Task::none()
+            // The selected preset becomes the active one, so its blocks are
+            // read right after switching.
+            load_blocks(app, Some((setlist, index)))
         }
         Message::RenameInputChanged(name) => {
             // Stop typing at the device's limit instead of failing on submit.
@@ -170,5 +164,53 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.rename_error = Some(err);
             Task::none()
         }
+        Message::BlocksRequested => load_blocks(app, None),
+        Message::BlocksLoaded(blocks) => {
+            info!("Active preset has {} block(s)", blocks.len());
+            app.blocks = blocks;
+            app.blocks_loading = false;
+            app.blocks_error = None;
+            // Keep the selection only if that position still holds a block.
+            if app.selected_block().is_none() {
+                app.selected_block = None;
+            }
+            Task::none()
+        }
+        Message::BlocksLoadFailed(err) => {
+            error!("Failed to read the active preset's blocks: {err}");
+            app.blocks_loading = false;
+            app.blocks_error = Some(err);
+            Task::none()
+        }
+        Message::BlockSelected(path, position) => {
+            app.selected_block = Some((path, position));
+            Task::none()
+        }
     }
+}
+
+/// Reads the active preset's blocks, first switching to `select` (a
+/// `(setlist, slot)` pair) when given.
+fn load_blocks(app: &mut App, select: Option<(u8, u8)>) -> Task<Message> {
+    app.blocks_loading = true;
+    app.blocks_error = None;
+
+    Task::perform(
+        async move {
+            tokio::task::spawn_blocking(move || -> Result<Vec<Block>, HxError> {
+                with_device(|client| {
+                    if let Some((setlist, preset)) = select {
+                        client.select_preset(setlist, preset)?;
+                    }
+                    client.read_active_preset_blocks()
+                })
+            })
+            .await
+            .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
+        },
+        |result| match result {
+            Ok(blocks) => Message::BlocksLoaded(blocks),
+            Err(e) => Message::BlocksLoadFailed(e.to_string()),
+        },
+    )
 }

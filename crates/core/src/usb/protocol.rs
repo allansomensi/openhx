@@ -164,6 +164,90 @@ pub fn build_select_preset_request(seq: u8, setlist: u8, preset: u8) -> [u8; 40]
     ]
 }
 
+// Edit channel
+//
+// The device exposes a second channel next to the preset channel above:
+// routing `80 10 ED 03` (host→device) / `ED 03 80 10` (device→host), resource
+// 6. It serves the active preset's full contents — its blocks and their
+// parameters — as one length-delimited stream, paginated like the preset
+// list.
+
+/// Routing field the device puts on edit-channel replies.
+pub const EDIT_ROUTING_IN: [u8; 4] = [0xED, 0x03, 0x80, 0x10];
+
+/// Edit-channel handshake (`magic = 0x0028`, `seq = 0x00`).
+pub const EDIT_HANDSHAKE: &[u8] = &[
+    0x0C, 0x00, 0x00, 0x28, 0x80, 0x10, 0xED, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x21,
+    0x00, 0x10, 0x00, 0x00,
+];
+
+/// Opens resource 6 on the edit channel (`cmd = 0x04`, `seq = 0x02`).
+pub const EDIT_SESSION_OPEN: &[u8] = &[
+    0x11, 0x00, 0x00, 0x18, 0x80, 0x10, 0xED, 0x03, 0x00, 0x02, 0x00, 0x04, 0x00, 0x10, 0x00, 0x00,
+    0x01, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+];
+
+/// Sequence number of the read-active-preset request in a fresh edit session.
+pub const READ_ACTIVE_PRESET_SEQ: u8 = 0x03;
+
+/// Starts streaming the active preset (`cmd = 0x0C`, `seq = 0x03`).
+///
+/// The payload is a MsgPack structure: `{102: 1012, 100: 22, 101: nil}`.
+pub const READ_ACTIVE_PRESET: &[u8] = &[
+    0x19,
+    0x00,
+    0x00,
+    0x18, // Magic header with length for 36-byte packet
+    0x80,
+    0x10,
+    0xED,
+    0x03, // Edit-channel routing
+    0x00,
+    READ_ACTIVE_PRESET_SEQ,
+    0x00,
+    0x0C, // Sequence and Command (0x0C = start paged stream)
+    // Inner resource header
+    0x09,
+    0x10,
+    0x00,
+    0x00,
+    0x01,
+    0x00,
+    0x06,
+    0x00,
+    0x09,
+    0x00,
+    0x00,
+    0x00, // MsgPack payload length (9 bytes)
+    // MsgPack Payload
+    0x83, // fixmap(3 items)
+    0x66,
+    0xCD,
+    0x03,
+    0xF4, // Key 102 (Transaction ID): 1012
+    0x64,
+    0x16, // Key 100 (Command Type): 22 (Read active preset)
+    0x65,
+    0xC0, // Key 101 (Args): nil
+    // Padding to align to 4-byte boundary
+    0x00,
+    0x00,
+    0x00,
+];
+
+/// Sequence number of the first edit-channel pagination request.
+pub const EDIT_PAGINATION_INITIAL_SEQ: u8 = READ_ACTIVE_PRESET_SEQ + 1;
+
+/// Builds an edit-channel pagination request; the edit-channel twin of
+/// [`build_pagination_request`].
+#[inline]
+pub fn build_edit_pagination_request(seq: u8, offset: u32) -> [u8; 16] {
+    let [o0, o1, o2, o3] = offset.to_le_bytes();
+    [
+        0x08, 0x00, 0x00, 0x18, 0x80, 0x10, 0xED, 0x03, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
+    ]
+}
+
 /// Status code (key `103`) a write command's ACK carries on success.
 ///
 /// Captured from an HX Stomp for both preset selection and rename. Read

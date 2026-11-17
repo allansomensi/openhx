@@ -11,6 +11,22 @@ rename-placeholder = Preset name
 rename-button = Rename
 rename-in-progress = Renaming...
 rename-failed = Rename failed: { $error }
+blocks-title = Current Preset Blocks
+blocks-refresh = Refresh Blocks
+blocks-loading = Reading blocks...
+blocks-load-failed = Could not read the preset's blocks: { $error }
+blocks-empty = This preset has no blocks.
+block-hint = Select a block to see its settings.
+block-device-type = Device Type
+block-module-name = Module Name
+block-settings = Module Settings
+block-unknown-category = Unknown
+block-position = Path { $path }, position { $position }
+block-param = Parameter { $number }
+block-cab-param = Cab parameter { $number }
+block-on = on
+block-off = off
+block-read-only = Values are read-only; changing them is not supported yet.
 
 cli-list-presets-about = Lists all presets from a connected Line 6 device.
 cli-list-presets-long = Probes the USB bus automatically if no device is specified.
@@ -35,6 +51,9 @@ cli-rename-preset-long = Stores a new name for the preset at the given setlist a
 cli-name-help = New preset name (up to 16 printable ASCII characters).
 cli-renaming-preset = Renaming setlist { $setlist }, preset { $preset } to "{ $name }"...
 cli-preset-renamed-success = Preset successfully renamed!
+cli-preset-blocks-about = Shows the blocks of the active preset
+cli-preset-blocks-long = Reads the active preset from the device and lists its blocks in signal order, with their models and parameter values.
+cli-total-blocks = Total: { $count } block(s).
 
 mock-mode-active = [mock] Running in mock mode — no hardware required.
 
@@ -70,3 +89,4 @@ msgpack-setlist-not-map = Setlist entry is not a map.
 msgpack-setlist-map-empty = Setlist entry map is empty.
 msgpack-setlist-index-not-int = Setlist index is not an integer.
 msgpack-setlist-name-invalid = Setlist { $index }: name is not a string.
+preset-data-invalid = Active preset data is malformed (at { $field }).

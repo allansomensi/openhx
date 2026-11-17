@@ -1,4 +1,5 @@
 use crate::{
+    blocks::Block,
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
@@ -84,7 +85,15 @@ impl DeviceClient for MockClient {
 
         Ok(())
     }
+
+    /// Returns the blocks of a preset captured from a real HX Stomp.
+    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
+        crate::usb::preset_data::parse_active_preset(MOCK_ACTIVE_PRESET)
+    }
 }
+
+/// Active-preset stream captured from an HX Stomp.
+static MOCK_ACTIVE_PRESET: &[u8] = include_bytes!("usb/fixtures/active_preset_hx_stomp.bin");
 
 static MOCK_PRESET_NAMES: [&str; 128] = [
     "Clean Tweed",
@@ -309,6 +318,13 @@ mod tests {
                 .rename_preset(0, 0, "Way Too Long Preset Name")
                 .is_err()
         );
+    }
+
+    #[test]
+    fn mock_active_preset_has_blocks() {
+        let client = MockClient::new();
+        let blocks = client.read_active_preset_blocks().unwrap();
+        assert!(!blocks.is_empty());
     }
 
     #[test]

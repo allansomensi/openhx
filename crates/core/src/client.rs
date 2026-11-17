@@ -1,4 +1,5 @@
 use crate::{
+    blocks::Block,
     device::profile::DeviceProfile,
     error::HxError,
     models::{Preset, Setlist},
@@ -45,6 +46,9 @@ pub trait DeviceClient: Send {
     /// `name` is validated with [`crate::models::validate_preset_name`]
     /// before anything is sent to the device.
     fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError>;
+
+    /// Reads the blocks of the device's active preset, in signal order.
+    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError>;
 }
 
 /// Creates a [`DeviceClient`] for the given device, or auto-detects one.

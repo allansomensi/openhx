@@ -1,4 +1,4 @@
-use crate::{app::App, message::Message, state::AppState};
+use crate::{app::App, blocks_view, message::Message, state::AppState};
 use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_core::Setlist;
@@ -139,9 +139,12 @@ pub fn view(app: &App) -> Element<'_, Message> {
             }
             let sidebar = sidebar.push(list_container);
 
-            let body = row![sidebar, edit_panel(app)]
+            let main = column![edit_panel(app), blocks_view::panel(app)]
                 .spacing(20)
+                .width(Length::Fill)
                 .height(Length::Fill);
+
+            let body = row![sidebar, main].spacing(20).height(Length::Fill);
 
             column![header, body]
                 .spacing(20)

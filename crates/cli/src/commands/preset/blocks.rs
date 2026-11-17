@@ -1,0 +1,69 @@
+use crate::args::DeviceArg;
+use openhx_core::{Block, connect_client, device::KnownDevice, error::HxError};
+use openhx_i18n::fl;
+
+/// Executes the `preset blocks` CLI command.
+pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
+    #[cfg(feature = "mock")]
+    eprintln!("{}", fl!("mock-mode-active"));
+
+    let known_device = device.map(KnownDevice::from);
+
+    match &known_device {
+        Some(d) => println!(
+            "{}",
+            fl!(
+                "cli-connecting-to",
+                device_name = d.profile().name.to_string()
+            )
+        ),
+        None => println!("{}", fl!("cli-probing-usb")),
+    }
+
+    let client = connect_client(known_device)?;
+
+    println!(
+        "{}\n",
+        fl!("cli-connected-to", profile = client.profile().to_string())
+    );
+
+    let blocks = client.read_active_preset_blocks()?;
+
+    for block in &blocks {
+        println!("{}", format_block(block));
+        if !block.params.is_empty() {
+            println!("      {}", format_params(&block.params));
+        }
+        if !block.cab_params.is_empty() {
+            println!("      {}", format_params(&block.cab_params));
+        }
+    }
+
+    println!("\n{}", fl!("cli-total-blocks", count = blocks.len()));
+
+    Ok(())
+}
+
+/// Formats a block as `P1.3  [AMP] Name (off)`.
+fn format_block(block: &Block) -> String {
+    let tag = block.category().map_or("???", |c| c.abbreviation());
+    let state = if block.enabled {
+        String::new()
+    } else {
+        format!(" ({})", fl!("block-off"))
+    };
+    format!(
+        "P{}.{}  [{tag:<3}] {}{state}",
+        block.path + 1,
+        block.position + 1,
+        block.name()
+    )
+}
+
+fn format_params(params: &[openhx_core::ParamValue]) -> String {
+    params
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}

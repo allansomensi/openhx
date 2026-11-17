@@ -101,6 +101,15 @@ pub enum PresetAction {
         #[arg(short, long, value_name = "NAME", help = fl!("cli-name-help"))]
         name: String,
     },
+
+    #[command(
+        about = fl!("cli-preset-blocks-about"),
+        long_about = fl!("cli-preset-blocks-long")
+    )]
+    Blocks {
+        #[arg(long, value_name = "DEVICE", help = fl!("cli-device-help"))]
+        device: Option<DeviceArg>,
+    },
 }
 
 /// CLI-friendly wrapper around [`KnownDevice`] that implements [`clap::ValueEnum`].

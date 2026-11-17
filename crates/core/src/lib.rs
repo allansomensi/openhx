@@ -1,3 +1,4 @@
+pub mod blocks;
 pub mod client;
 pub mod device;
 pub mod error;
@@ -7,6 +8,7 @@ pub mod usb;
 #[cfg(feature = "mock")]
 pub mod mock;
 
+pub use blocks::{Block, BlockCategory, BlockKind, ParamValue};
 pub use client::{
     DeviceClient, connect_client, is_device_present, reset_shared_device, with_device,
 };
