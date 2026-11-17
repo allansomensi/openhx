@@ -1,60 +1,32 @@
-use crate::args::DeviceArg;
-use openhx_core::{
-    Block, ParamDef, ParamValue, PathSplit, PresetChain, connect_client, device::KnownDevice,
-    error::HxError,
-};
+use crate::{args::DeviceArg, commands::connect};
+use openhx_core::{Block, ParamDef, ParamValue, PathSplit, error::HxError};
 use openhx_i18n::fl;
 
 /// Executes the `preset blocks` CLI command.
 pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
-    #[cfg(feature = "mock")]
-    eprintln!("{}", fl!("mock-mode-active"));
+    let client = connect(device)?;
 
-    let known_device = device.map(KnownDevice::from);
+    let chain = client.read_active_preset_blocks()?;
 
-    match &known_device {
-        Some(d) => println!(
-            "{}",
-            fl!(
-                "cli-connecting-to",
-                device_name = d.profile().name.to_string()
-            )
-        ),
-        None => println!("{}", fl!("cli-probing-usb")),
-    }
-
-    let client = connect_client(known_device)?;
-
-    println!(
-        "{}\n",
-        fl!("cli-connected-to", profile = client.profile().to_string())
-    );
-
-    let PresetChain { blocks, split } = client.read_active_preset_blocks()?;
-
-    for block in &blocks {
+    for block in &chain.blocks {
         println!("{}", format_block(block));
         if !block.params.is_empty() {
-            println!("      {}", format_params(&block.params, block.param_defs()));
+            println!("      {}", format_params(block.params_with_defs()));
         }
         if !block.cab_params.is_empty() {
-            println!(
-                "      {}",
-                format_params(&block.cab_params, block.cab_param_defs())
-            );
+            println!("      {}", format_params(block.cab_params_with_defs()));
         }
     }
 
     // Path 2 runs in parallel to the positions between split and join.
-    if let Some(PathSplit { split, join }) = split
-        && blocks.iter().any(|b| b.path == 1)
+    if let Some(PathSplit { split, join }) = chain.path2_span()
         && join > split
     {
         let (from, to): (u8, u8) = (split + 1, join);
         println!("\n{}", fl!("cli-path-split", from = from, to = to));
     }
 
-    println!("\n{}", fl!("cli-total-blocks", count = blocks.len()));
+    println!("\n{}", fl!("cli-total-blocks", count = chain.blocks.len()));
 
     Ok(())
 }
@@ -77,12 +49,12 @@ fn format_block(block: &Block) -> String {
 
 /// Formats values as `Drive 3.7, Level 0.0 dB` when their definitions are
 /// known, otherwise as bare values.
-fn format_params(params: &[ParamValue], defs: Option<&[ParamDef]>) -> String {
+fn format_params<'a>(
+    params: impl Iterator<Item = (&'a ParamValue, Option<&'static ParamDef>)>,
+) -> String {
     params
-        .iter()
-        .enumerate()
-        .map(|(i, value)| match defs {
-            Some(defs) => format!("{} {}", defs[i].name, defs[i].format(value)),
+        .map(|(value, def)| match def {
+            Some(def) => format!("{} {}", def.name, def.format(value)),
             None => value.to_string(),
         })
         .collect::<Vec<_>>()

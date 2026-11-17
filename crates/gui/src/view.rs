@@ -223,12 +223,10 @@ fn edit_panel(app: &App) -> Element<'_, Message> {
     .width(Length::Fill);
 
     if let Some(err) = &app.rename_error {
-        let error = text(fl!("rename-failed", error = err.clone()))
-            .size(13)
-            .style(|_theme: &Theme| text::Style {
-                color: Some(Color::from_rgb(0.9, 0.3, 0.3)),
-            });
-        panel = panel.push(error);
+        panel = panel.push(blocks_view::error_text(fl!(
+            "rename-failed",
+            error = err.clone()
+        )));
     }
 
     panel.into()

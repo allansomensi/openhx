@@ -34,7 +34,7 @@ use crate::{
     error::HxError,
     models::ActivePreset,
     usb::{
-        parser::response_result,
+        parser::{map_get as get, response_result},
         protocol::{RESPONSE_HEADER_SIZE, RESPONSE_PAYLOAD_OFFSET},
     },
 };
@@ -110,15 +110,11 @@ pub fn parse_active_preset(stream: &[u8]) -> Result<PresetChain, HxError> {
         .get(RESPONSE_PAYLOAD_OFFSET - RESPONSE_HEADER_SIZE..)
         .ok_or_else(|| invalid("envelope"))?;
     let blob = response_result(envelope)?;
-    let blob = match &blob {
-        Value::String(s) => s.as_bytes(),
-        Value::Binary(b) => b.as_slice(),
-        _ => return Err(invalid("blob")),
-    };
+    let blob = blob.as_slice().ok_or_else(|| invalid("blob"))?;
 
     let mut cursor = Cursor::new(blob);
     let magic = read_value(&mut cursor)?;
-    if string_bytes(&magic) != Some(PRESET_MAGIC) {
+    if magic.as_slice() != Some(PRESET_MAGIC) {
         return Err(invalid("magic"));
     }
     // Offset table; the body below is self-describing, so it is not needed.
@@ -244,21 +240,6 @@ fn param_value(value: &Value) -> Option<ParamValue> {
         Value::String(s) => Some(ParamValue::Text(
             String::from_utf8_lossy(s.as_bytes()).into_owned(),
         )),
-        _ => None,
-    }
-}
-
-/// Looks up an integer key in a MessagePack map.
-fn get(map: &Value, key: u64) -> Option<&Value> {
-    map.as_map()?
-        .iter()
-        .find(|(k, _)| k.as_u64() == Some(key))
-        .map(|(_, v)| v)
-}
-
-fn string_bytes(value: &Value) -> Option<&[u8]> {
-    match value {
-        Value::String(s) => Some(s.as_bytes()),
         _ => None,
     }
 }

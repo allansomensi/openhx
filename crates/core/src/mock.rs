@@ -5,7 +5,6 @@ use crate::{
     error::HxError,
     models::{ActivePreset, Preset, Setlist, validate_preset_name},
 };
-use openhx_i18n::fl;
 
 /// A simulated HX Stomp XL.
 pub struct MockClient;
@@ -60,12 +59,7 @@ impl DeviceClient for MockClient {
         let profile = self.profile();
         profile.validate_setlist(setlist)?;
 
-        if u16::from(preset) >= profile.preset_count {
-            return Err(HxError::protocol(format!(
-                "preset {preset} out of range (0–{})",
-                profile.preset_count - 1
-            )));
-        }
+        profile.validate_preset(preset)?;
 
         eprintln!("[mock] select_preset(setlist={setlist}, preset={preset}) — OK");
 
@@ -87,21 +81,22 @@ impl DeviceClient for MockClient {
         Ok(())
     }
 
-    /// Refuses like the USB client does: the edit channel is only supported
-    /// on the HX Stomp, and the mock simulates an HX Stomp XL.
+    /// Refuses like the USB client does when the simulated device's edit
+    /// channel is unverified (the HX Stomp XL's is); otherwise reports the
+    /// first preset as active.
     fn read_active_preset(&self) -> Result<ActivePreset, HxError> {
-        Err(HxError::protocol(fl!(
-            "usb-edit-unsupported",
-            device = self.profile().name
-        )))
+        self.profile().ensure_edit_channel()?;
+        Ok(ActivePreset {
+            setlist: 0,
+            preset: 0,
+        })
     }
 
-    /// Refuses for the same reason as [`Self::read_active_preset`].
+    /// Refuses for the same reason as [`Self::read_active_preset`];
+    /// otherwise reports an empty preset.
     fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError> {
-        Err(HxError::protocol(fl!(
-            "usb-edit-unsupported",
-            device = self.profile().name
-        )))
+        self.profile().ensure_edit_channel()?;
+        Ok(PresetChain::default())
     }
 }
 

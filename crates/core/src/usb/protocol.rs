@@ -123,12 +123,18 @@ pub fn build_open_stream_request(seq: u8, setlist: u8) -> [u8; 40] {
     ]
 }
 
-/// Builds a pagination request for the given sequence number and stream offset.
+/// Routing field of host→device packets on the preset channel.
+pub const PRESET_ROUTING_OUT: [u8; 4] = [0x01, 0x10, 0xEF, 0x03];
+
+/// Builds a pagination request on the channel with the given host→device
+/// `routing` ([`PRESET_ROUTING_OUT`] or [`EDIT_ROUTING_OUT`]) for the given
+/// sequence number and stream offset.
 #[inline]
-pub fn build_pagination_request(seq: u8, offset: u32) -> [u8; 16] {
+pub fn build_pagination_request(routing: [u8; 4], seq: u8, offset: u32) -> [u8; 16] {
+    let [r0, r1, r2, r3] = routing;
     let [o0, o1, o2, o3] = offset.to_le_bytes();
     [
-        0x08, 0x00, 0x00, 0x18, 0x01, 0x10, 0xEF, 0x03, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
+        0x08, 0x00, 0x00, 0x18, r0, r1, r2, r3, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
     ]
 }
 
@@ -172,6 +178,9 @@ pub fn build_select_preset_request(seq: u8, setlist: u8, preset: u8) -> [u8; 40]
 // parameters — as one length-delimited stream, paginated like the preset
 // list.
 
+/// Routing field of host→device packets on the edit channel.
+pub const EDIT_ROUTING_OUT: [u8; 4] = [0x80, 0x10, 0xED, 0x03];
+
 /// Routing field the device puts on edit-channel replies.
 pub const EDIT_ROUTING_IN: [u8; 4] = [0xED, 0x03, 0x80, 0x10];
 
@@ -190,50 +199,60 @@ pub const EDIT_SESSION_OPEN: &[u8] = &[
 /// Sequence number of the read-active-preset request in a fresh edit session.
 pub const READ_ACTIVE_PRESET_SEQ: u8 = 0x03;
 
+/// Builds an edit-channel request without arguments, the first after opening
+/// the channel (`seq` [`READ_ACTIVE_PRESET_SEQ`]).
+///
+/// The payload is a MsgPack structure: `{102: txn, 100: command, 101: nil}`.
+const fn edit_request(cmd: u8, txn: u16, command: u8) -> [u8; 36] {
+    let [t0, t1] = txn.to_be_bytes();
+    let [r0, r1, r2, r3] = EDIT_ROUTING_OUT;
+    [
+        0x19,
+        0x00,
+        0x00,
+        0x18, // Magic header with length for 36-byte packet
+        r0,
+        r1,
+        r2,
+        r3, // Edit-channel routing
+        0x00,
+        READ_ACTIVE_PRESET_SEQ,
+        0x00,
+        cmd, // Sequence and Command
+        // Inner resource header
+        0x09,
+        0x10,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x06,
+        0x00,
+        0x09,
+        0x00,
+        0x00,
+        0x00, // MsgPack payload length (9 bytes)
+        // MsgPack Payload
+        0x83, // fixmap(3 items)
+        0x66,
+        0xCD,
+        t0,
+        t1, // Key 102 (Transaction ID): txn
+        0x64,
+        command, // Key 100 (Command Type)
+        0x65,
+        0xC0, // Key 101 (Args): nil
+        // Padding to align to 4-byte boundary
+        0x00,
+        0x00,
+        0x00,
+    ]
+}
+
 /// Starts streaming the active preset (`cmd = 0x0C`, `seq = 0x03`).
 ///
 /// The payload is a MsgPack structure: `{102: 1012, 100: 22, 101: nil}`.
-pub const READ_ACTIVE_PRESET: &[u8] = &[
-    0x19,
-    0x00,
-    0x00,
-    0x18, // Magic header with length for 36-byte packet
-    0x80,
-    0x10,
-    0xED,
-    0x03, // Edit-channel routing
-    0x00,
-    READ_ACTIVE_PRESET_SEQ,
-    0x00,
-    0x0C, // Sequence and Command (0x0C = start paged stream)
-    // Inner resource header
-    0x09,
-    0x10,
-    0x00,
-    0x00,
-    0x01,
-    0x00,
-    0x06,
-    0x00,
-    0x09,
-    0x00,
-    0x00,
-    0x00, // MsgPack payload length (9 bytes)
-    // MsgPack Payload
-    0x83, // fixmap(3 items)
-    0x66,
-    0xCD,
-    0x03,
-    0xF4, // Key 102 (Transaction ID): 1012
-    0x64,
-    0x16, // Key 100 (Command Type): 22 (Read active preset)
-    0x65,
-    0xC0, // Key 101 (Args): nil
-    // Padding to align to 4-byte boundary
-    0x00,
-    0x00,
-    0x00,
-];
+pub const READ_ACTIVE_PRESET: &[u8] = &edit_request(0x0C, 1012, 22);
 
 /// Asks which preset is active (`cmd = 0x04`, `seq = 0x03`).
 ///
@@ -241,60 +260,10 @@ pub const READ_ACTIVE_PRESET: &[u8] = &[
 /// reply's result is a map starting `{107: setlist, 108: preset, 109: name}`.
 /// Like [`READ_ACTIVE_PRESET`], it is the first request after opening the
 /// edit channel, so it reuses that sequence number.
-pub const READ_ACTIVE_PRESET_INFO: &[u8] = &[
-    0x19,
-    0x00,
-    0x00,
-    0x18, // Magic header with length for 36-byte packet
-    0x80,
-    0x10,
-    0xED,
-    0x03, // Edit-channel routing
-    0x00,
-    READ_ACTIVE_PRESET_SEQ,
-    0x00,
-    0x04, // Sequence and Command (0x04)
-    // Inner resource header
-    0x09,
-    0x10,
-    0x00,
-    0x00,
-    0x01,
-    0x00,
-    0x06,
-    0x00,
-    0x09,
-    0x00,
-    0x00,
-    0x00, // MsgPack payload length (9 bytes)
-    // MsgPack Payload
-    0x83, // fixmap(3 items)
-    0x66,
-    0xCD,
-    0x04,
-    0x04, // Key 102 (Transaction ID): 1028
-    0x64,
-    0x17, // Key 100 (Command Type): 23 (Active preset info)
-    0x65,
-    0xC0, // Key 101 (Args): nil
-    // Padding to align to 4-byte boundary
-    0x00,
-    0x00,
-    0x00,
-];
+pub const READ_ACTIVE_PRESET_INFO: &[u8] = &edit_request(0x04, 1028, 23);
 
 /// Sequence number of the first edit-channel pagination request.
 pub const EDIT_PAGINATION_INITIAL_SEQ: u8 = READ_ACTIVE_PRESET_SEQ + 1;
-
-/// Builds an edit-channel pagination request; the edit-channel twin of
-/// [`build_pagination_request`].
-#[inline]
-pub fn build_edit_pagination_request(seq: u8, offset: u32) -> [u8; 16] {
-    let [o0, o1, o2, o3] = offset.to_le_bytes();
-    [
-        0x08, 0x00, 0x00, 0x18, 0x80, 0x10, 0xED, 0x03, 0x00, seq, 0x00, 0x08, o0, o1, o2, o3,
-    ]
-}
 
 /// Status code (key `103`) a write command's ACK carries on success.
 ///
@@ -383,7 +352,7 @@ mod tests {
 
     #[test]
     fn build_pagination_request_formats_correctly() {
-        let pkt = build_pagination_request(0x08, STREAM_INITIAL_OFFSET);
+        let pkt = build_pagination_request(PRESET_ROUTING_OUT, 0x08, STREAM_INITIAL_OFFSET);
 
         assert_eq!(pkt.len(), 16);
         assert_eq!(pkt[SEQ_OFFSET], 0x08);
@@ -391,6 +360,29 @@ mod tests {
 
         // Offset should be Little-Endian (0x0000_1138 -> 38 11 00 00)
         assert_eq!(&pkt[12..16], &[0x38, 0x11, 0x00, 0x00]);
+    }
+
+    /// Edit-channel requests as captured from an HX Stomp.
+    #[rustfmt::skip]
+    const READ_ACTIVE_PRESET_CAPTURED: &[u8] = &[
+        0x19, 0x00, 0x00, 0x18, 0x80, 0x10, 0xED, 0x03, 0x00, 0x03, 0x00, 0x0C,
+        0x09, 0x10, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x09, 0x00, 0x00, 0x00,
+        0x83, 0x66, 0xCD, 0x03, 0xF4, 0x64, 0x16, 0x65, 0xC0, 0x00, 0x00, 0x00,
+    ];
+    #[rustfmt::skip]
+    const READ_ACTIVE_PRESET_INFO_CAPTURED: &[u8] = &[
+        0x19, 0x00, 0x00, 0x18, 0x80, 0x10, 0xED, 0x03, 0x00, 0x03, 0x00, 0x04,
+        0x09, 0x10, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x09, 0x00, 0x00, 0x00,
+        0x83, 0x66, 0xCD, 0x04, 0x04, 0x64, 0x17, 0x65, 0xC0, 0x00, 0x00, 0x00,
+    ];
+
+    #[test]
+    fn edit_requests_match_captures() {
+        assert_eq!(READ_ACTIVE_PRESET, READ_ACTIVE_PRESET_CAPTURED);
+        assert_eq!(READ_ACTIVE_PRESET_INFO, READ_ACTIVE_PRESET_INFO_CAPTURED);
+
+        let page = build_pagination_request(EDIT_ROUTING_OUT, 0x04, STREAM_INITIAL_OFFSET);
+        assert_eq!(&page[4..8], &EDIT_ROUTING_OUT);
     }
 
     /// Start-paged-stream packet as captured from an HX Stomp XL

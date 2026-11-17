@@ -1,6 +1,6 @@
 use crate::{message::Message, state::AppState, update, view, worker};
 use iced::{Subscription, Task};
-use openhx_core::{Block, BlockCategory, PathSplit, Preset, Setlist};
+use openhx_core::{Block, BlockCategory, Preset, PresetChain, Setlist};
 
 pub struct App {
     pub state: AppState,
@@ -18,19 +18,38 @@ pub struct App {
     pub rename_pending: bool,
     /// Why the last rename failed, shown under the name field.
     pub rename_error: Option<String>,
-    /// Blocks of the device's active preset, in signal order.
-    pub blocks: Vec<Block>,
-    /// Where the active preset's second path branches off and merges back.
-    pub split: Option<PathSplit>,
+    /// The active preset's blocks and the block view's state.
+    pub blocks: BlocksState,
+}
+
+/// The active preset's signal chain as shown in the block view.
+#[derive(Debug, Default)]
+pub struct BlocksState {
+    /// The device's active preset.
+    pub chain: PresetChain,
     /// `true` while the active preset's blocks are being read.
-    pub blocks_loading: bool,
+    pub loading: bool,
     /// Why reading the blocks failed, if it did.
-    pub blocks_error: Option<String>,
+    pub error: Option<String>,
     /// Block whose settings are shown, as `(path, position)`.
-    pub selected_block: Option<(u8, u8)>,
+    pub selected: Option<(u8, u8)>,
     /// Device type picked in the type list; `None` follows the selected
     /// block's own type.
     pub browse_category: Option<BlockCategory>,
+}
+
+impl BlocksState {
+    /// The block whose settings are shown, if it still exists.
+    pub fn selected_block(&self) -> Option<&Block> {
+        let (path, position) = self.selected?;
+        self.chain.block_at(path, position)
+    }
+
+    /// The device type whose models the module list shows: the one picked
+    /// in the type list, else `block`'s own.
+    pub fn browsed_category(&self, block: &Block) -> Option<BlockCategory> {
+        self.browse_category.or_else(|| block.category())
+    }
 }
 
 impl Default for App {
@@ -46,12 +65,7 @@ impl Default for App {
             rename_input: String::new(),
             rename_pending: false,
             rename_error: None,
-            blocks: Vec::new(),
-            split: None,
-            blocks_loading: false,
-            blocks_error: None,
-            selected_block: None,
-            browse_category: None,
+            blocks: BlocksState::default(),
         }
     }
 }
@@ -65,12 +79,14 @@ impl App {
         self.rename_error = None;
     }
 
-    /// The block whose settings are shown, if it still exists.
-    pub fn selected_block(&self) -> Option<&Block> {
-        let (path, position) = self.selected_block?;
-        self.blocks
-            .iter()
-            .find(|b| b.path == path && b.position == position)
+    /// Selects preset slot `index` of the shown setlist and offers its name
+    /// for renaming.
+    pub fn select_preset(&mut self, index: u8) {
+        self.clear_selection();
+        self.selected_preset = Some(index);
+        if let Some(preset) = self.presets.iter().find(|p| p.index == index) {
+            self.rename_input = preset.name.clone();
+        }
     }
 
     pub fn new() -> (Self, Task<Message>) {

@@ -56,7 +56,7 @@ fn category_color(category: Option<BlockCategory>) -> Color {
 pub fn panel(app: &App) -> Element<'_, Message> {
     let refresh = button(text(fl!("blocks-refresh")).size(13))
         .padding([5, 12])
-        .on_press_maybe((!app.blocks_loading).then_some(Message::BlocksRequested));
+        .on_press_maybe((!app.blocks.loading).then_some(Message::BlocksRequested));
 
     let header = row![
         text(fl!("blocks-title")).size(18),
@@ -67,22 +67,17 @@ pub fn panel(app: &App) -> Element<'_, Message> {
 
     let mut content = column![header].spacing(14).width(Length::Fill);
 
-    if app.blocks_loading {
+    let blocks = &app.blocks;
+    if blocks.loading {
         content = content.push(muted(fl!("blocks-loading")));
     }
-    if let Some(err) = &app.blocks_error {
-        content = content.push(
-            text(fl!("blocks-load-failed", error = err.clone()))
-                .size(13)
-                .style(|_theme: &Theme| text::Style {
-                    color: Some(ERROR_TEXT),
-                }),
-        );
+    if let Some(err) = &blocks.error {
+        content = content.push(error_text(fl!("blocks-load-failed", error = err.clone())));
     }
 
-    if !app.blocks_loading && app.blocks_error.is_none() && app.blocks.is_empty() {
+    if !blocks.loading && blocks.error.is_none() && blocks.chain.blocks.is_empty() {
         content = content.push(muted(fl!("blocks-empty")));
-    } else if !app.blocks.is_empty() {
+    } else if !blocks.chain.blocks.is_empty() {
         content = content.push(chain(app));
         content = content.push(details(app));
     }
@@ -97,13 +92,7 @@ pub fn panel(app: &App) -> Element<'_, Message> {
 /// and a position, then the other endpoint. Each column spans both rows, so
 /// a gap can draw the vertical line between them.
 fn chain(app: &App) -> Element<'_, Message> {
-    let split = app.blocks.iter().any(|b| b.path == 1).then(|| {
-        // A preset that does not say spans path 2 over the whole chain.
-        app.split.unwrap_or(PathSplit {
-            split: 0,
-            join: POSITIONS_PER_PATH,
-        })
-    });
+    let split = app.blocks.chain.path2_span();
 
     let mut strip = row![terminal()];
     for position in 0..POSITIONS_PER_PATH {
@@ -127,25 +116,19 @@ fn row_center(row: u8) -> f32 {
 /// The column of one position: path 1's box and, below it, path 2's box
 /// when the position lies between split and join.
 fn position_column(app: &App, position: u8, split: Option<PathSplit>) -> Element<'_, Message> {
-    let tile = |path: u8| {
-        let block = app
-            .blocks
-            .iter()
-            .find(|b| b.path == path && b.position == position);
-        let selected = app.selected_block == Some((path, position));
+    let chain = &app.blocks.chain;
+    let tile = |path: u8, block| {
+        let selected = app.blocks.selected == Some((path, position));
         block_box(block, path, position, selected)
     };
 
-    let mut column = column![tile(0)];
+    let mut column = column![tile(0, chain.block_at(0, position))];
     if let Some(PathSplit { split, join }) = split {
-        let on_path2 = (split..join).contains(&position)
-            || app
-                .blocks
-                .iter()
-                .any(|b| b.path == 1 && b.position == position);
+        let lower = chain.block_at(1, position);
+        let on_path2 = (split..join).contains(&position) || lower.is_some();
         column = column.push(Space::new().height(ROW_GAP));
         column = column.push(if on_path2 {
-            tile(1)
+            tile(1, lower)
         } else {
             Space::new().width(BLOCK_WIDTH).height(BLOCK_HEIGHT).into()
         });
@@ -209,25 +192,20 @@ fn line<'a>(x: f32, y: f32, width: f32, height: f32) -> Element<'a, Message> {
     .into()
 }
 
-/// A path's input or output, centered on path 1's row.
+/// The ○ marking a path's input or output, centered on path 1's row.
 fn terminal<'a>() -> Element<'a, Message> {
-    container(endpoint())
-        .height(BLOCK_HEIGHT)
-        .center_y(BLOCK_HEIGHT)
-        .into()
-}
-
-/// The ○ marking a path's input or output.
-fn endpoint<'a>() -> Element<'a, Message> {
-    container(Space::new().width(12).height(12))
-        .style(|_theme: &Theme| container::Style {
+    let ring =
+        container(Space::new().width(12).height(12)).style(|_theme: &Theme| container::Style {
             border: Border {
                 color: LINE_COLOR,
                 width: 2.0,
                 radius: 6.0.into(),
             },
             ..Default::default()
-        })
+        });
+    container(ring)
+        .height(BLOCK_HEIGHT)
+        .center_y(BLOCK_HEIGHT)
         .into()
 }
 
@@ -291,7 +269,7 @@ pub const MODULE_LIST_ID: &str = "module-list";
 
 /// Device type list, module name list and settings of the selected block.
 fn details(app: &App) -> Element<'_, Message> {
-    let Some(block) = app.selected_block() else {
+    let Some(block) = app.blocks.selected_block() else {
         return muted(fl!("block-hint"));
     };
 
@@ -312,13 +290,13 @@ fn details(app: &App) -> Element<'_, Message> {
 /// Every block category; the browsed one is highlighted and picking another
 /// shows its models.
 fn device_type_list<'a>(app: &App, block: &Block) -> iced::widget::Container<'a, Message> {
-    let browsed = app.browse_category.or_else(|| block.category());
+    let browsed = app.blocks.browsed_category(block);
 
     let entries = BlockCategory::ALL
         .iter()
         .fold(column![].spacing(1), |col, &category| {
             col.push(list_entry(
-                category.label().to_owned(),
+                category.label(),
                 browsed == Some(category),
                 Some(Message::DeviceTypeChosen(category)),
             ))
@@ -330,15 +308,15 @@ fn device_type_list<'a>(app: &App, block: &Block) -> iced::widget::Container<'a,
 /// The models of the browsed category, with the block's own model
 /// highlighted. Read-only: picking a model is not possible yet.
 fn module_list<'a>(app: &App, block: &Block) -> iced::widget::Container<'a, Message> {
-    let browsed = app.browse_category.or_else(|| block.category());
     let current = block.model_id();
 
-    let entries = browsed
-        .map(models_in)
-        .unwrap_or_default()
-        .into_iter()
+    let entries = app
+        .blocks
+        .browsed_category(block)
+        .map_or(&[][..], models_in)
+        .iter()
         .fold(column![].spacing(1), |col, model| {
-            col.push(list_entry(model.name.to_owned(), model.id == current, None))
+            col.push(list_entry(model.name, model.id == current, None))
         });
 
     list_panel(fl!("block-module-name"), entries, MODULE_LIST_ID)
@@ -361,29 +339,28 @@ fn settings_panel(block: &Block) -> iced::widget::Container<'_, Message> {
         position = position_number
     );
 
-    let mut settings = column![].spacing(6);
-    let defs = block.param_defs();
-    for (i, value) in block.params.iter().enumerate() {
-        let def = defs.map(|defs| &defs[i]);
-        let label = def.map_or_else(
-            || {
-                let number: usize = i + 1;
-                fl!("block-param", number = number)
-            },
-            |d| d.name.to_owned(),
-        );
-        settings = settings.push(param_row(label, value, def));
-    }
-    let cab_defs = block.cab_param_defs();
-    for (i, value) in block.cab_params.iter().enumerate() {
-        let def = cab_defs.map(|defs| &defs[i]);
-        let number: usize = i + 1;
-        let label = def.map_or_else(
-            || fl!("block-cab-param", number = number),
-            |d| fl!("block-cab-param-named", name = d.name),
-        );
-        settings = settings.push(param_row(label, value, def));
-    }
+    // Parameters without a definition are numbered from 1.
+    let params = block
+        .params_with_defs()
+        .zip(1usize..)
+        .map(|((value, def), number)| {
+            let label = def.map_or_else(
+                || fl!("block-param", number = number),
+                |d| d.name.to_owned(),
+            );
+            param_row(label, value, def)
+        });
+    let cab_params = block
+        .cab_params_with_defs()
+        .zip(1usize..)
+        .map(|((value, def), number)| {
+            let label = def.map_or_else(
+                || fl!("block-cab-param", number = number),
+                |d| fl!("block-cab-param-named", name = d.name),
+            );
+            param_row(label, value, def)
+        });
+    let settings = column(params.chain(cab_params)).spacing(6);
 
     let content = column![
         text(fl!("block-settings")).size(14),
@@ -420,20 +397,14 @@ fn list_panel<'a>(
 /// One list row; clickable when `on_press` is given, highlighted when
 /// `selected`.
 fn list_entry<'a>(
-    label: String,
+    label: &'static str,
     selected: bool,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let background = if selected {
-        Some(Background::Color(Color::from_rgba(
-            LINE_COLOR.r,
-            LINE_COLOR.g,
-            LINE_COLOR.b,
-            0.45,
-        )))
-    } else {
-        None
-    };
+    let background = selected.then_some(Background::Color(Color {
+        a: 0.45,
+        ..LINE_COLOR
+    }));
 
     let entry = button(text(label).size(13))
         .width(Length::Fill)
@@ -486,12 +457,7 @@ fn param_row<'a>(
         None => Space::new().width(Length::Fill).into(),
     };
 
-    let shown = match (value, def) {
-        (ParamValue::Bool(true), _) => fl!("block-on"),
-        (ParamValue::Bool(false), _) => fl!("block-off"),
-        (other, Some(def)) => def.format(other),
-        (other, None) => other.to_string(),
-    };
+    let shown = def.map_or_else(|| value.to_string(), |def| def.format(value));
 
     row![
         text(label).size(13).width(150),
@@ -501,6 +467,16 @@ fn param_row<'a>(
     .spacing(10)
     .align_y(Alignment::Center)
     .into()
+}
+
+/// A line of text in the error color.
+pub fn error_text<'a>(content: String) -> Element<'a, Message> {
+    text(content)
+        .size(13)
+        .style(|_theme: &Theme| text::Style {
+            color: Some(ERROR_TEXT),
+        })
+        .into()
 }
 
 fn muted<'a>(content: String) -> Element<'a, Message> {

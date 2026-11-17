@@ -4,6 +4,9 @@
 mod catalog;
 
 use catalog::MODELS;
+use openhx_i18n::fl;
+use std::collections::HashMap;
+use std::sync::LazyLock;
 
 /// The kind of processing a block's model performs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -115,14 +118,25 @@ pub struct Model {
 ///
 /// An amp+cab block picks its model from the amps, so [`BlockCategory::AmpCab`]
 /// lists those.
-pub fn models_in(category: BlockCategory) -> Vec<&'static Model> {
+pub fn models_in(category: BlockCategory) -> &'static [&'static Model] {
+    // Sorted once; the GUI asks on every redraw.
+    static BY_CATEGORY: LazyLock<HashMap<BlockCategory, Vec<&'static Model>>> =
+        LazyLock::new(|| {
+            let mut by_category: HashMap<_, Vec<_>> = HashMap::new();
+            for model in MODELS {
+                by_category.entry(model.category).or_default().push(model);
+            }
+            for models in by_category.values_mut() {
+                models.sort_unstable_by(|a, b| a.name.cmp(b.name).then(a.id.cmp(&b.id)));
+            }
+            by_category
+        });
+
     let wanted = match category {
         BlockCategory::AmpCab => BlockCategory::Amp,
         other => other,
     };
-    let mut models: Vec<&Model> = MODELS.iter().filter(|m| m.category == wanted).collect();
-    models.sort_unstable_by(|a, b| a.name.cmp(b.name).then(a.id.cmp(&b.id)));
-    models
+    BY_CATEGORY.get(&wanted).map_or(&[], Vec::as_slice)
 }
 
 /// Looks up a model by the ID the device reports for it.
@@ -151,8 +165,8 @@ impl std::fmt::Display for ParamValue {
         match self {
             Self::Float(v) => write!(f, "{v:.2}"),
             Self::Int(v) => write!(f, "{v}"),
-            Self::Bool(true) => f.write_str("on"),
-            Self::Bool(false) => f.write_str("off"),
+            Self::Bool(true) => f.write_str(&fl!("block-on")),
+            Self::Bool(false) => f.write_str(&fl!("block-off")),
             Self::Text(s) => f.write_str(s.trim_end_matches('\0')),
         }
     }
@@ -205,7 +219,7 @@ impl ParamDef {
 
     /// Formats `value` the way HX Edit shows it, with its unit.
     ///
-    /// Switches format as `on`/`off`; selectors whose choices are named on
+    /// Switches format as on/off in the user's language; selectors whose choices are named on
     /// the device (mic, note value, …) show their raw number.
     pub fn format(&self, value: &ParamValue) -> String {
         let display = self.display;
@@ -322,6 +336,22 @@ impl Block {
         }
     }
 
+    /// Each of [`Block::params`] with its definition, when the definitions
+    /// are known and match.
+    pub fn params_with_defs(
+        &self,
+    ) -> impl Iterator<Item = (&ParamValue, Option<&'static ParamDef>)> {
+        with_defs(&self.params, self.param_defs())
+    }
+
+    /// Each of [`Block::cab_params`] with its definition, like
+    /// [`Block::params_with_defs`].
+    pub fn cab_params_with_defs(
+        &self,
+    ) -> impl Iterator<Item = (&ParamValue, Option<&'static ParamDef>)> {
+        with_defs(&self.cab_params, self.cab_param_defs())
+    }
+
     /// The block's display name; unknown models show their ID.
     pub fn name(&self) -> String {
         let model_name =
@@ -331,6 +361,15 @@ impl Block {
             BlockKind::AmpCab { amp, cab } => format!("{} + {}", model_name(amp), model_name(cab)),
         }
     }
+}
+
+/// Pairs `values` with `defs`, or with `None` when there are none.
+fn with_defs<'a>(
+    values: &'a [ParamValue],
+    defs: Option<&'static [ParamDef]>,
+) -> impl Iterator<Item = (&'a ParamValue, Option<&'static ParamDef>)> {
+    let defs = defs.unwrap_or_default().iter().map(Some);
+    values.iter().zip(defs.chain(std::iter::repeat(None)))
 }
 
 /// A model's definitions, if there is one of the right type for each of
@@ -371,8 +410,26 @@ pub struct PresetChain {
     pub split: Option<PathSplit>,
 }
 
-/// Number of signal paths in a preset.
-pub const PATH_COUNT: u8 = 2;
+impl PresetChain {
+    /// Where path 2 runs, or `None` when it holds no blocks.
+    ///
+    /// A preset that does not say spans path 2 over the whole chain.
+    pub fn path2_span(&self) -> Option<PathSplit> {
+        self.blocks.iter().any(|b| b.path == 1).then(|| {
+            self.split.unwrap_or(PathSplit {
+                split: 0,
+                join: POSITIONS_PER_PATH,
+            })
+        })
+    }
+
+    /// The block at `position` of `path`, if there is one.
+    pub fn block_at(&self, path: u8, position: u8) -> Option<&Block> {
+        self.blocks
+            .iter()
+            .find(|b| b.path == path && b.position == position)
+    }
+}
 
 /// Number of block positions in each signal path.
 pub const POSITIONS_PER_PATH: u8 = 8;
@@ -502,6 +559,38 @@ mod tests {
 
         b.params[1] = ParamValue::Bool(true);
         assert!(b.param_defs().is_none());
+    }
+
+    #[test]
+    fn params_pair_with_their_definitions_when_they_match() {
+        let mut b = block(BlockKind::Model(582));
+        b.params = vec![ParamValue::Float(0.0); 6];
+        b.params[1] = ParamValue::Int(1);
+        b.params[4] = ParamValue::Bool(false);
+        let names: Vec<_> = b.params_with_defs().map(|(_, d)| d.map(|d| d.id)).collect();
+        assert_eq!(names[0], Some("Drive"));
+        assert_eq!(names.len(), 6);
+
+        b.params.pop();
+        assert!(b.params_with_defs().all(|(_, d)| d.is_none()));
+        assert_eq!(b.params_with_defs().count(), 5);
+    }
+
+    #[test]
+    fn path2_spans_the_whole_chain_unless_the_preset_says_otherwise() {
+        let mut lower = block(BlockKind::Model(72));
+        lower.path = 1;
+        let mut chain = PresetChain {
+            blocks: vec![block(BlockKind::Model(582))],
+            split: Some(PathSplit { split: 2, join: 4 }),
+        };
+        assert_eq!(chain.path2_span(), None);
+
+        chain.blocks.push(lower);
+        assert_eq!(chain.path2_span(), Some(PathSplit { split: 2, join: 4 }));
+        chain.split = None;
+        assert_eq!(chain.path2_span(), Some(PathSplit { split: 0, join: 8 }));
+        assert!(chain.block_at(1, 0).is_some());
     }
 
     #[test]

@@ -62,23 +62,31 @@ pub fn stream_len(buf: &[u8], n: usize) -> Result<usize, HxError> {
     Ok(RESPONSE_PAYLOAD_OFFSET - RESPONSE_HEADER_SIZE + u32::from_le_bytes(len_bytes) as usize)
 }
 
-/// Decodes a response envelope (`{102: txn, 103: status, 104: result}`) and
-/// returns its result value, rejecting a non-zero status.
+/// Looks up an integer key in a MessagePack map; `None` when `map` is not a
+/// map or lacks the key.
+pub(crate) fn map_get(map: &rmpv::Value, key: u64) -> Option<&rmpv::Value> {
+    map.as_map()?
+        .iter()
+        .find(|(k, _)| k.as_u64() == Some(key))
+        .map(|(_, v)| v)
+}
+
+/// Decodes a response envelope (`{102: txn, 103: status, 104: result}`).
+fn decode_envelope(payload: &[u8]) -> Result<rmpv::Value, HxError> {
+    let envelope = read_value(&mut Cursor::new(payload))?;
+    if envelope.is_map() {
+        Ok(envelope)
+    } else {
+        Err(HxError::protocol(fl!("msgpack-response-not-map")))
+    }
+}
+
+/// Decodes a response envelope and returns its result value, rejecting a
+/// non-zero status.
 pub(crate) fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
-    let mut cursor = Cursor::new(payload);
-    let root = read_value(&mut cursor)?;
+    let envelope = decode_envelope(payload)?;
 
-    let map = root
-        .as_map()
-        .ok_or_else(|| HxError::protocol(fl!("msgpack-response-not-map")))?;
-
-    let lookup = |key: u64| {
-        map.iter()
-            .find(|(k, _)| k.as_u64() == Some(key))
-            .map(|(_, v)| v)
-    };
-
-    match lookup(MSGPACK_KEY_STATUS).and_then(rmpv::Value::as_u64) {
+    match map_get(&envelope, MSGPACK_KEY_STATUS).and_then(rmpv::Value::as_u64) {
         Some(0) | None => {}
         Some(status) => {
             return Err(HxError::protocol(fl!(
@@ -88,7 +96,7 @@ pub(crate) fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
         }
     }
 
-    Ok(lookup(MSGPACK_KEY_RESULT)
+    Ok(map_get(&envelope, MSGPACK_KEY_RESULT)
         .cloned()
         .unwrap_or(rmpv::Value::Nil))
 }
@@ -101,17 +109,8 @@ pub(crate) fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
 ///
 /// [`ACK_STATUS_OK`]: crate::usb::protocol::ACK_STATUS_OK
 pub fn response_status(payload: &[u8]) -> Result<Option<u64>, HxError> {
-    let mut cursor = Cursor::new(payload);
-    let root = read_value(&mut cursor)?;
-
-    let map = root
-        .as_map()
-        .ok_or_else(|| HxError::protocol(fl!("msgpack-response-not-map")))?;
-
-    Ok(map
-        .iter()
-        .find(|(k, _)| k.as_u64() == Some(MSGPACK_KEY_STATUS))
-        .and_then(|(_, v)| v.as_u64()))
+    let envelope = decode_envelope(payload)?;
+    Ok(map_get(&envelope, MSGPACK_KEY_STATUS).and_then(rmpv::Value::as_u64))
 }
 
 /// Parses the reply to the open-presets command into the device's setlists.

@@ -1,5 +1,5 @@
 use crate::{
-    app::App,
+    app::{App, BlocksState},
     blocks_view::{DEVICE_TYPE_LIST_ID, MODULE_LIST_ID},
     message::Message,
     state::AppState,
@@ -8,7 +8,7 @@ use crate::{
 use iced::Task;
 use iced::widget::operation::{RelativeOffset, snap_to};
 use openhx_core::{
-    ActivePreset, BlockCategory, HxError, PRESET_NAME_MAX_LEN, PresetChain, blocks::models_in,
+    ActivePreset, BlockCategory, DeviceClient, HxError, PRESET_NAME_MAX_LEN, blocks::models_in,
     reset_shared_device, validate_preset_name, with_device,
 };
 use tracing::{debug, error, info};
@@ -44,12 +44,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.setlist = 0;
             app.presets.clear();
             app.clear_selection();
-            app.blocks.clear();
-            app.split = None;
-            app.blocks_loading = false;
-            app.blocks_error = None;
-            app.selected_block = None;
-            app.browse_category = None;
+            app.blocks = BlocksState::default();
             Task::none()
         }
         Message::SetlistChosen(setlist) => {
@@ -58,14 +53,8 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             }
             info!("Loading setlist {setlist}");
 
-            Task::perform(
-                async move {
-                    tokio::task::spawn_blocking(move || {
-                        with_device(|client| client.read_setlist_presets(setlist))
-                    })
-                    .await
-                    .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
-                },
+            device_task(
+                move |client| client.read_setlist_presets(setlist),
                 move |result| match result {
                     Ok(presets) => Message::SetlistLoaded(setlist, presets),
                     Err(e) => Message::SetlistLoadFailed(setlist, e.to_string()),
@@ -92,11 +81,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
         Message::PresetSelected(index) => {
             let setlist = app.setlist;
             info!("Preset selected: setlist {setlist}, slot {index:03}");
-            app.clear_selection();
-            app.selected_preset = Some(index);
-            if let Some(preset) = app.presets.iter().find(|p| p.index == index) {
-                app.rename_input = preset.name.clone();
-            }
+            app.select_preset(index);
 
             // The selected preset becomes the active one, so its blocks are
             // read right after switching.
@@ -129,21 +114,14 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.rename_pending = true;
             app.rename_error = None;
 
-            Task::perform(
-                async move {
-                    let result = tokio::task::spawn_blocking({
-                        let name = name.clone();
-                        move || with_device(|client| client.rename_preset(setlist, preset, &name))
-                    })
-                    .await
-                    .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())));
-                    (name, result)
-                },
-                move |(name, result)| match result {
+            let sent = name.clone();
+            device_task(
+                move |client| client.rename_preset(setlist, preset, &sent),
+                move |result| match result {
                     Ok(()) => Message::PresetRenamed {
                         setlist,
                         preset,
-                        name,
+                        name: name.clone(),
                     },
                     Err(e) => Message::RenameFailed(e.to_string()),
                 },
@@ -158,12 +136,13 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.rename_pending = false;
 
             // The user may have switched setlists while the rename ran.
-            if setlist == app.setlist
-                && let Some(entry) = app.presets.iter_mut().find(|p| p.index == preset)
-            {
+            if setlist != app.setlist {
+                return Task::none();
+            }
+            if let Some(entry) = app.presets.iter_mut().find(|p| p.index == preset) {
                 entry.name = name.clone();
             }
-            if app.selected_preset == Some(preset) && setlist == app.setlist {
+            if app.selected_preset == Some(preset) {
                 app.rename_input = name;
             }
             Task::none()
@@ -184,30 +163,30 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
                 chain.split
             );
             let scroll = show_active_preset(app, active);
-            app.blocks = chain.blocks;
-            app.split = chain.split;
-            app.blocks_loading = false;
-            app.blocks_error = None;
+            let blocks = &mut app.blocks;
+            blocks.chain = chain;
+            blocks.loading = false;
+            blocks.error = None;
             // Keep the selection only if that position still holds a block.
-            if app.selected_block().is_none() {
-                app.selected_block = None;
+            if blocks.selected_block().is_none() {
+                blocks.selected = None;
             }
-            app.browse_category = None;
+            blocks.browse_category = None;
             scroll
         }
         Message::BlocksLoadFailed(err) => {
             error!("Failed to read the active preset's blocks: {err}");
-            app.blocks_loading = false;
-            app.blocks_error = Some(err);
+            app.blocks.loading = false;
+            app.blocks.error = Some(err);
             Task::none()
         }
         Message::BlockSelected(path, position) => {
-            app.selected_block = Some((path, position));
-            app.browse_category = None;
+            app.blocks.selected = Some((path, position));
+            app.blocks.browse_category = None;
             scroll_lists_to_block(app)
         }
         Message::DeviceTypeChosen(category) => {
-            app.browse_category = Some(category);
+            app.blocks.browse_category = Some(category);
             scroll_lists_to_block(app)
         }
     }
@@ -216,10 +195,10 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
 /// Scrolls the device type and module lists so the browsed type and the
 /// selected block's model are in view.
 fn scroll_lists_to_block(app: &App) -> Task<Message> {
-    let Some(block) = app.selected_block() else {
+    let Some(block) = app.blocks.selected_block() else {
         return Task::none();
     };
-    let Some(category) = app.browse_category.or_else(|| block.category()) else {
+    let Some(category) = app.blocks.browsed_category(block) else {
         return Task::none();
     };
 
@@ -265,12 +244,10 @@ fn show_active_preset(app: &mut App, active: ActivePreset) -> Task<Message> {
         return Task::none();
     }
 
-    app.clear_selection();
-    app.selected_preset = Some(active.preset);
+    app.select_preset(active.preset);
     let Some(position) = app.presets.iter().position(|p| p.index == active.preset) else {
         return Task::none();
     };
-    app.rename_input = app.presets[position].name.clone();
 
     snap_to(PRESET_LIST_ID, relative(position, app.presets.len()))
 }
@@ -278,27 +255,37 @@ fn show_active_preset(app: &mut App, active: ActivePreset) -> Task<Message> {
 /// Reads which preset is active and its blocks, first switching to `select`
 /// (a `(setlist, slot)` pair) when given.
 fn load_blocks(app: &mut App, select: Option<(u8, u8)>) -> Task<Message> {
-    app.blocks_loading = true;
-    app.blocks_error = None;
+    app.blocks.loading = true;
+    app.blocks.error = None;
 
-    Task::perform(
-        async move {
-            tokio::task::spawn_blocking(move || -> Result<(ActivePreset, PresetChain), HxError> {
-                with_device(|client| {
-                    if let Some((setlist, preset)) = select {
-                        client.select_preset(setlist, preset)?;
-                    }
-                    let active = client.read_active_preset()?;
-                    let chain = client.read_active_preset_blocks()?;
-                    Ok((active, chain))
-                })
-            })
-            .await
-            .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
+    device_task(
+        move |client| {
+            if let Some((setlist, preset)) = select {
+                client.select_preset(setlist, preset)?;
+            }
+            let active = client.read_active_preset()?;
+            let chain = client.read_active_preset_blocks()?;
+            Ok((active, chain))
         },
         |result| match result {
             Ok((active, chain)) => Message::ActivePresetLoaded { active, chain },
             Err(e) => Message::BlocksLoadFailed(e.to_string()),
         },
+    )
+}
+
+/// Runs `work` on the shared device off the UI thread and turns its result
+/// into a message.
+fn device_task<T: Send + 'static>(
+    work: impl FnOnce(&dyn DeviceClient) -> Result<T, HxError> + Send + 'static,
+    to_message: impl Fn(Result<T, HxError>) -> Message + Send + 'static,
+) -> Task<Message> {
+    Task::perform(
+        async move {
+            tokio::task::spawn_blocking(move || with_device(work))
+                .await
+                .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
+        },
+        to_message,
     )
 }
