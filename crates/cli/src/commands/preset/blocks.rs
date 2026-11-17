@@ -1,6 +1,7 @@
 use crate::args::DeviceArg;
 use openhx_core::{
-    Block, ParamDef, ParamValue, connect_client, device::KnownDevice, error::HxError,
+    Block, ParamDef, ParamValue, PathSplit, PresetChain, connect_client, device::KnownDevice,
+    error::HxError,
 };
 use openhx_i18n::fl;
 
@@ -29,7 +30,7 @@ pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
         fl!("cli-connected-to", profile = client.profile().to_string())
     );
 
-    let blocks = client.read_active_preset_blocks()?;
+    let PresetChain { blocks, split } = client.read_active_preset_blocks()?;
 
     for block in &blocks {
         println!("{}", format_block(block));
@@ -42,6 +43,15 @@ pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
                 format_params(&block.cab_params, block.cab_param_defs())
             );
         }
+    }
+
+    // Path 2 runs in parallel to the positions between split and join.
+    if let Some(PathSplit { split, join }) = split
+        && blocks.iter().any(|b| b.path == 1)
+        && join > split
+    {
+        let (from, to): (u8, u8) = (split + 1, join);
+        println!("\n{}", fl!("cli-path-split", from = from, to = to));
     }
 
     println!("\n{}", fl!("cli-total-blocks", count = blocks.len()));

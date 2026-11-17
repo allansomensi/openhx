@@ -54,6 +54,7 @@ cli-preset-renamed-success = Preset renomeado com sucesso!
 cli-preset-blocks-about = Mostra os blocos do preset ativo
 cli-preset-blocks-long = Lê o preset ativo do dispositivo e lista seus blocos na ordem do sinal, com seus modelos e valores de parâmetros.
 cli-total-blocks = Total: { $count } bloco(s).
+cli-path-split = O caminho 2 corre em paralelo às posições { $from }–{ $to } do caminho 1.
 cli-preset-active-about = Mostra qual preset está ativo no dispositivo
 cli-preset-active-long = Consulta o preset ativo no dispositivo e exibe sua setlist, posição e nome.
 cli-active-preset = Preset ativo: setlist { $setlist }, preset { $preset } ({ $name })

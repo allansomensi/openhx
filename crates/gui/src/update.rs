@@ -8,7 +8,7 @@ use crate::{
 use iced::Task;
 use iced::widget::operation::{RelativeOffset, snap_to};
 use openhx_core::{
-    ActivePreset, Block, BlockCategory, HxError, PRESET_NAME_MAX_LEN, blocks::models_in,
+    ActivePreset, BlockCategory, HxError, PRESET_NAME_MAX_LEN, PresetChain, blocks::models_in,
     reset_shared_device, validate_preset_name, with_device,
 };
 use tracing::{debug, error, info};
@@ -45,6 +45,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.presets.clear();
             app.clear_selection();
             app.blocks.clear();
+            app.split = None;
             app.blocks_loading = false;
             app.blocks_error = None;
             app.selected_block = None;
@@ -174,15 +175,17 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::BlocksRequested => load_blocks(app, None),
-        Message::ActivePresetLoaded { active, blocks } => {
+        Message::ActivePresetLoaded { active, chain } => {
             info!(
-                "Active preset: setlist {}, slot {:03}, {} block(s)",
+                "Active preset: setlist {}, slot {:03}, {} block(s), split {:?}",
                 active.setlist,
                 active.preset,
-                blocks.len()
+                chain.blocks.len(),
+                chain.split
             );
             let scroll = show_active_preset(app, active);
-            app.blocks = blocks;
+            app.blocks = chain.blocks;
+            app.split = chain.split;
             app.blocks_loading = false;
             app.blocks_error = None;
             // Keep the selection only if that position still holds a block.
@@ -280,21 +283,21 @@ fn load_blocks(app: &mut App, select: Option<(u8, u8)>) -> Task<Message> {
 
     Task::perform(
         async move {
-            tokio::task::spawn_blocking(move || -> Result<(ActivePreset, Vec<Block>), HxError> {
+            tokio::task::spawn_blocking(move || -> Result<(ActivePreset, PresetChain), HxError> {
                 with_device(|client| {
                     if let Some((setlist, preset)) = select {
                         client.select_preset(setlist, preset)?;
                     }
                     let active = client.read_active_preset()?;
-                    let blocks = client.read_active_preset_blocks()?;
-                    Ok((active, blocks))
+                    let chain = client.read_active_preset_blocks()?;
+                    Ok((active, chain))
                 })
             })
             .await
             .unwrap_or_else(|e| Err(HxError::Protocol(e.to_string())))
         },
         |result| match result {
-            Ok((active, blocks)) => Message::ActivePresetLoaded { active, blocks },
+            Ok((active, chain)) => Message::ActivePresetLoaded { active, chain },
             Err(e) => Message::BlocksLoadFailed(e.to_string()),
         },
     )

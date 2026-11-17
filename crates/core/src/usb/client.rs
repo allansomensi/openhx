@@ -4,7 +4,7 @@ use super::{
     protocol::*,
 };
 use crate::{
-    blocks::Block,
+    blocks::PresetChain,
     client::DeviceClient,
     device::{KnownDevice, PROFILE_HX_STOMP, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
@@ -401,7 +401,7 @@ impl Client {
 
     /// Core retry loop for reading the active preset's blocks, extracted to
     /// avoid name collision with the [`DeviceClient`] trait method.
-    fn read_active_preset_impl(&self) -> Result<Vec<Block>, HxError> {
+    fn read_active_preset_impl(&self) -> Result<PresetChain, HxError> {
         let timeout = Duration::from_millis(TIMEOUT_MS);
 
         for attempt in 0..MAX_INIT_RETRIES {
@@ -796,7 +796,7 @@ impl DeviceClient for Client {
     }
 
     #[inline]
-    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError> {
         self.ensure_edit_channel_supported()?;
         self.read_active_preset_impl()
     }

@@ -1,6 +1,6 @@
 use crate::{message::Message, state::AppState, update, view, worker};
 use iced::{Subscription, Task};
-use openhx_core::{Block, BlockCategory, Preset, Setlist};
+use openhx_core::{Block, BlockCategory, PathSplit, Preset, Setlist};
 
 pub struct App {
     pub state: AppState,
@@ -20,6 +20,8 @@ pub struct App {
     pub rename_error: Option<String>,
     /// Blocks of the device's active preset, in signal order.
     pub blocks: Vec<Block>,
+    /// Where the active preset's second path branches off and merges back.
+    pub split: Option<PathSplit>,
     /// `true` while the active preset's blocks are being read.
     pub blocks_loading: bool,
     /// Why reading the blocks failed, if it did.
@@ -45,6 +47,7 @@ impl Default for App {
             rename_pending: false,
             rename_error: None,
             blocks: Vec::new(),
+            split: None,
             blocks_loading: false,
             blocks_error: None,
             selected_block: None,

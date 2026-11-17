@@ -16,15 +16,21 @@
 //! ```text
 //! { 19: type, 20: body }
 //!   type 0–3   path input/output; not a block
+//!   type 2     path 2's input: { 15: split }
+//!   type 3     path 2's output: { 17: join }
 //!   type 6     block: { 24: { 23: dual, 25: model, 26: second model },
 //!                       10: enabled, 11: params, 12: second params }
 //!   type 8     empty position (body is nil)
 //!   other      not decoded yet (e.g. type 7, the looper); skipped
 //! params:     { 2: count, 3: …, 4: [values] }
+//! split/join: { 8: model, 13: slot, 10: enabled, 7: params }
 //! ```
+//!
+//! A split or join `slot` is the index within path 1 of the slot it sits
+//! before: `3` lies between the second and third position.
 
 use crate::{
-    blocks::{Block, BlockKind, POSITIONS_PER_PATH, ParamValue},
+    blocks::{Block, BlockKind, POSITIONS_PER_PATH, ParamValue, PathSplit, PresetChain},
     error::HxError,
     models::ActivePreset,
     usb::{
@@ -54,6 +60,12 @@ const KEY_MODEL_B: u64 = 26;
 const KEY_ENABLED: u64 = 10;
 const KEY_PARAMS_A: u64 = 11;
 const KEY_PARAMS_B: u64 = 12;
+/// Key of the split in path 2's input and of the join in its output.
+const KEY_SPLIT: u64 = 15;
+const KEY_JOIN: u64 = 17;
+/// Key of the slot a split or join sits before.
+const KEY_SPLIT_SLOT: u64 = 13;
+
 /// Parameter map key holding the value array.
 const KEY_PARAM_VALUES: u64 = 4;
 
@@ -93,7 +105,7 @@ pub fn parse_active_preset_info(
 ///
 /// Empty positions and the paths' inputs and outputs are left out; the
 /// blocks are returned in signal order, path by path.
-pub fn parse_active_preset(stream: &[u8]) -> Result<Vec<Block>, HxError> {
+pub fn parse_active_preset(stream: &[u8]) -> Result<PresetChain, HxError> {
     let envelope = stream
         .get(RESPONSE_PAYLOAD_OFFSET - RESPONSE_HEADER_SIZE..)
         .ok_or_else(|| invalid("envelope"))?;
@@ -134,7 +146,32 @@ pub fn parse_active_preset(stream: &[u8]) -> Result<Vec<Block>, HxError> {
         }
     }
 
-    Ok(blocks)
+    Ok(PresetChain {
+        blocks,
+        split: path_split(slots),
+    })
+}
+
+/// Reads where path 2 branches off path 1 and merges back.
+fn path_split(slots: &[Value]) -> Option<PathSplit> {
+    // The split sits in path 2's input slot, the join in its output slot.
+    let gap = |slot: usize, key| {
+        let index = slots
+            .get(slot)
+            .and_then(|s| get(s, KEY_SLOT_BODY))
+            .and_then(|body| get(body, key))
+            .and_then(|node| get(node, KEY_SPLIT_SLOT))
+            .and_then(Value::as_u64)?;
+        // Slot `n` of a path is position `n - 1`; the gap before it has the
+        // same number as that position.
+        let gap = index.saturating_sub(1).min(u64::from(POSITIONS_PER_PATH));
+        u8::try_from(gap).ok()
+    };
+
+    Some(PathSplit {
+        split: gap(SLOTS_PER_PATH, KEY_SPLIT)?,
+        join: gap(2 * SLOTS_PER_PATH - 1, KEY_JOIN)?,
+    })
 }
 
 /// Parses one block position; `None` when it is empty.
@@ -238,9 +275,31 @@ mod tests {
     /// Active-preset stream captured from an HX Stomp (firmware 3.71).
     const HX_STOMP_STREAM: &[u8] = include_bytes!("fixtures/active_preset_hx_stomp.bin");
 
+    /// The factory preset "Cathedral", captured from an HX Stomp (3.71):
+    /// path 2 branches off after the second block and merges back before
+    /// the reverb in position 5.
+    const CATHEDRAL_STREAM: &[u8] = include_bytes!("fixtures/active_preset_cathedral_hx_stomp.bin");
+
+    #[test]
+    fn captured_streams_carry_split_and_join() {
+        let cathedral = parse_active_preset(CATHEDRAL_STREAM).unwrap();
+        assert_eq!(cathedral.split, Some(PathSplit { split: 2, join: 4 }));
+        let path2: Vec<_> = cathedral
+            .blocks
+            .iter()
+            .filter(|b| b.path == 1)
+            .map(|b| b.position)
+            .collect();
+        assert_eq!(path2, [3]);
+
+        // Two cabs in parallel after the amp in position 4.
+        let dual_cab = parse_active_preset(HX_STOMP_STREAM).unwrap();
+        assert_eq!(dual_cab.split, Some(PathSplit { split: 4, join: 6 }));
+    }
+
     #[test]
     fn captured_stream_yields_its_blocks_in_signal_order() {
-        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap();
+        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap().blocks;
 
         let summary: Vec<_> = blocks
             .iter()
@@ -259,7 +318,7 @@ mod tests {
 
     #[test]
     fn captured_stream_carries_parameter_values() {
-        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap();
+        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap().blocks;
 
         let drive = &blocks[0];
         assert_eq!(drive.category(), Some(BlockCategory::Distortion));
@@ -285,7 +344,7 @@ mod tests {
 
     #[test]
     fn captured_blocks_match_their_parameter_definitions() {
-        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap();
+        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap().blocks;
 
         for block in &blocks {
             assert!(block.param_defs().is_some(), "{}", block.name());

@@ -1,4 +1,4 @@
-use openhx_core::{ActivePreset, Block, BlockCategory, Preset, Setlist};
+use openhx_core::{ActivePreset, BlockCategory, Preset, PresetChain, Setlist};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -30,10 +30,10 @@ pub enum Message {
     RenameFailed(String),
     /// The user asked to re-read the active preset's blocks.
     BlocksRequested,
-    /// The device reported its active preset and that preset's blocks.
+    /// The device reported its active preset and that preset's chain.
     ActivePresetLoaded {
         active: ActivePreset,
-        blocks: Vec<Block>,
+        chain: PresetChain,
     },
     /// Reading the active preset's blocks failed.
     BlocksLoadFailed(String),

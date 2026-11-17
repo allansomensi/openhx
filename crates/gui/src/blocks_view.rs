@@ -1,23 +1,29 @@
 //! The active preset's signal chain and the settings of the selected block.
 //!
-//! Laid out like the block view of helix_usb: a strip per signal path from
-//! input to output with one colored box per position, and below it the
-//! selected block's type, model and settings.
+//! Laid out like the block view of helix_usb: path 1 from input to output
+//! with one colored box per position, path 2 below it between the split and
+//! the join, and below that the selected block's type, model and settings.
 
 use crate::{app::App, message::Message};
-use iced::widget::{Space, button, column, container, progress_bar, row, scrollable, space, text};
-use iced::{Alignment, Background, Border, Color, Element, Length, Theme};
+use iced::widget::{
+    Space, button, column, container, progress_bar, row, scrollable, space, stack, text,
+};
+use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
 use openhx_core::{
-    Block, BlockCategory, ParamDef, ParamValue,
-    blocks::{PATH_COUNT, POSITIONS_PER_PATH, models_in},
+    Block, BlockCategory, ParamDef, ParamValue, PathSplit,
+    blocks::{POSITIONS_PER_PATH, models_in},
 };
 use openhx_i18n::fl;
 
 /// Size of one block box in the chain.
 const BLOCK_WIDTH: f32 = 46.0;
 const BLOCK_HEIGHT: f32 = 52.0;
-/// Width of the connector drawn between two boxes.
-const CONNECTOR_WIDTH: f32 = 10.0;
+/// Width of the gap between two boxes, holding the connecting lines.
+const CONNECTOR_WIDTH: f32 = 14.0;
+/// Space between path 1's row and path 2's row.
+const ROW_GAP: f32 = 16.0;
+/// Thickness of the signal lines.
+const LINE_WIDTH: f32 = 2.0;
 
 /// Color of the signal line between blocks.
 const LINE_COLOR: Color = Color::from_rgb(0.839, 0.573, 0.235);
@@ -84,40 +90,131 @@ pub fn panel(app: &App) -> Element<'_, Message> {
     content.into()
 }
 
-/// One strip per signal path; the second path only when it holds blocks.
+/// The signal chain: path 1 from input to output and, when it holds blocks,
+/// path 2 below it, branching off at the split and merging back at the join.
+///
+/// The chain is laid out in columns: an endpoint, then alternately a gap
+/// and a position, then the other endpoint. Each column spans both rows, so
+/// a gap can draw the vertical line between them.
 fn chain(app: &App) -> Element<'_, Message> {
-    let mut strips = column![].spacing(10);
+    let split = app.blocks.iter().any(|b| b.path == 1).then(|| {
+        // A preset that does not say spans path 2 over the whole chain.
+        app.split.unwrap_or(PathSplit {
+            split: 0,
+            join: POSITIONS_PER_PATH,
+        })
+    });
 
-    for path in 0..PATH_COUNT {
-        let used = app.blocks.iter().any(|b| b.path == path);
-        if path > 0 && !used {
-            continue;
-        }
-        strips = strips.push(path_strip(app, path));
+    let mut strip = row![terminal()];
+    for position in 0..POSITIONS_PER_PATH {
+        strip = strip.push(gap(position, split));
+        strip = strip.push(position_column(app, position, split));
     }
+    strip = strip.push(gap(POSITIONS_PER_PATH, split)).push(terminal());
 
-    container(strips)
+    container(strip)
         .padding(12)
         .width(Length::Fill)
         .style(panel_style)
         .into()
 }
 
-fn path_strip(app: &App, path: u8) -> Element<'_, Message> {
-    let mut strip = row![endpoint()].align_y(Alignment::Center);
+/// Vertical center of path 1's row (`0`) or path 2's row (`1`).
+fn row_center(row: u8) -> f32 {
+    f32::from(row) * (BLOCK_HEIGHT + ROW_GAP) + BLOCK_HEIGHT / 2.0
+}
 
-    for position in 0..POSITIONS_PER_PATH {
+/// The column of one position: path 1's box and, below it, path 2's box
+/// when the position lies between split and join.
+fn position_column(app: &App, position: u8, split: Option<PathSplit>) -> Element<'_, Message> {
+    let tile = |path: u8| {
         let block = app
             .blocks
             .iter()
             .find(|b| b.path == path && b.position == position);
         let selected = app.selected_block == Some((path, position));
+        block_box(block, path, position, selected)
+    };
 
-        strip = strip.push(connector());
-        strip = strip.push(block_box(block, path, position, selected));
+    let mut column = column![tile(0)];
+    if let Some(PathSplit { split, join }) = split {
+        let on_path2 = (split..join).contains(&position)
+            || app
+                .blocks
+                .iter()
+                .any(|b| b.path == 1 && b.position == position);
+        column = column.push(Space::new().height(ROW_GAP));
+        column = column.push(if on_path2 {
+            tile(1)
+        } else {
+            Space::new().width(BLOCK_WIDTH).height(BLOCK_HEIGHT).into()
+        });
     }
+    column.into()
+}
 
-    strip.push(connector()).push(endpoint()).into()
+/// The lines in the gap before position `gap` (or before the output).
+fn gap<'a>(gap: u8, split: Option<PathSplit>) -> Element<'a, Message> {
+    let height = if split.is_some() {
+        2.0 * BLOCK_HEIGHT + ROW_GAP
+    } else {
+        BLOCK_HEIGHT
+    };
+    let middle = CONNECTOR_WIDTH / 2.0;
+
+    let mut lines = stack![
+        Space::new().width(CONNECTOR_WIDTH).height(height),
+        line(0.0, row_center(0), CONNECTOR_WIDTH, LINE_WIDTH),
+    ];
+    if let Some(PathSplit { split, join }) = split {
+        let (top, bottom) = (row_center(0), row_center(1));
+        let vertical = || line(middle - LINE_WIDTH / 2.0, top, LINE_WIDTH, bottom - top);
+        if gap == split {
+            lines = lines.push(vertical());
+            lines = lines.push(line(middle, bottom, CONNECTOR_WIDTH - middle, LINE_WIDTH));
+        }
+        if gap == join {
+            lines = lines.push(vertical());
+            lines = lines.push(line(0.0, bottom, middle, LINE_WIDTH));
+        }
+        if split < gap && gap < join {
+            lines = lines.push(line(0.0, bottom, CONNECTOR_WIDTH, LINE_WIDTH));
+        }
+    }
+    lines.into()
+}
+
+/// A line segment at `(x, y)` (its center for horizontal lines' `y`) of the
+/// given size, within a gap.
+fn line<'a>(x: f32, y: f32, width: f32, height: f32) -> Element<'a, Message> {
+    let top = if height <= LINE_WIDTH {
+        y - LINE_WIDTH / 2.0
+    } else {
+        y
+    };
+    container(
+        container(Space::new().width(width).height(height)).style(|_theme: &Theme| {
+            container::Style {
+                background: Some(LINE_COLOR.into()),
+                ..Default::default()
+            }
+        }),
+    )
+    .padding(Padding {
+        top,
+        left: x,
+        right: 0.0,
+        bottom: 0.0,
+    })
+    .into()
+}
+
+/// A path's input or output, centered on path 1's row.
+fn terminal<'a>() -> Element<'a, Message> {
+    container(endpoint())
+        .height(BLOCK_HEIGHT)
+        .center_y(BLOCK_HEIGHT)
+        .into()
 }
 
 /// The ○ marking a path's input or output.
@@ -129,15 +226,6 @@ fn endpoint<'a>() -> Element<'a, Message> {
                 width: 2.0,
                 radius: 6.0.into(),
             },
-            ..Default::default()
-        })
-        .into()
-}
-
-fn connector<'a>() -> Element<'a, Message> {
-    container(Space::new().width(CONNECTOR_WIDTH).height(2))
-        .style(|_theme: &Theme| container::Style {
-            background: Some(LINE_COLOR.into()),
             ..Default::default()
         })
         .into()

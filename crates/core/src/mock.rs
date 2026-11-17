@@ -1,5 +1,5 @@
 use crate::{
-    blocks::Block,
+    blocks::PresetChain,
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
@@ -97,7 +97,7 @@ impl DeviceClient for MockClient {
     }
 
     /// Refuses for the same reason as [`Self::read_active_preset`].
-    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError> {
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError> {
         Err(HxError::protocol(fl!(
             "usb-edit-unsupported",
             device = self.profile().name

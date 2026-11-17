@@ -352,6 +352,28 @@ fn matching_defs(model: u16, values: &[ParamValue]) -> Option<&'static [ParamDef
     model_params(model).filter(|defs| defs.len() == values.len())
 }
 
+/// Where path 2 branches off path 1 and where it merges back.
+///
+/// Both are gaps between positions: gap `n` lies right before position `n`
+/// of path 1, and gap [`POSITIONS_PER_PATH`] lies before its output. Path 2
+/// carries the signal for the positions from `split` up to, not including,
+/// `join`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PathSplit {
+    pub split: u8,
+    pub join: u8,
+}
+
+/// A preset's signal chain: its blocks and how its paths connect.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PresetChain {
+    /// The blocks in signal order, path by path.
+    pub blocks: Vec<Block>,
+    /// Where path 2 branches off and merges back; `None` when the preset
+    /// does not say.
+    pub split: Option<PathSplit>,
+}
+
 /// Number of signal paths in a preset.
 pub const PATH_COUNT: u8 = 2;
 

@@ -1,5 +1,5 @@
 use crate::{
-    blocks::Block,
+    blocks::PresetChain,
     device::profile::DeviceProfile,
     error::HxError,
     models::{ActivePreset, Preset, Setlist},
@@ -52,10 +52,11 @@ pub trait DeviceClient: Send {
     /// Only supported on the HX Stomp so far; other devices return an error.
     fn read_active_preset(&self) -> Result<ActivePreset, HxError>;
 
-    /// Reads the blocks of the device's active preset, in signal order.
+    /// Reads the blocks of the device's active preset, in signal order,
+    /// and where its second path branches off and merges back.
     ///
     /// Only supported on the HX Stomp so far; other devices return an error.
-    fn read_active_preset_blocks(&self) -> Result<Vec<Block>, HxError>;
+    fn read_active_preset_blocks(&self) -> Result<PresetChain, HxError>;
 }
 
 /// Creates a [`DeviceClient`] for the given device, or auto-detects one.

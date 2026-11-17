@@ -54,6 +54,7 @@ cli-preset-renamed-success = Preset successfully renamed!
 cli-preset-blocks-about = Shows the blocks of the active preset
 cli-preset-blocks-long = Reads the active preset from the device and lists its blocks in signal order, with their models and parameter values.
 cli-total-blocks = Total: { $count } block(s).
+cli-path-split = Path 2 runs parallel to positions { $from }–{ $to } of path 1.
 cli-preset-active-about = Shows which preset is active on the device
 cli-preset-active-long = Asks the device for its active preset and prints its setlist, slot and name.
 cli-active-preset = Active preset: setlist { $setlist }, preset { $preset } ({ $name })
