@@ -72,11 +72,23 @@ fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
         .unwrap_or(rmpv::Value::Nil))
 }
 
-/// Checks a command reply's envelope for a non-zero status code.
+/// Returns the status code (key `103`) of a reply envelope, if present.
 ///
-/// Used for write commands whose reply carries no result of interest.
-pub fn check_response_status(payload: &[u8]) -> Result<(), HxError> {
-    response_result(payload).map(|_| ())
+/// The meaning of the code depends on the command: the setlist reply uses
+/// `0` for success, while a successful preset selection reports `1`. Write
+/// commands therefore expose the raw code instead of judging it.
+pub fn response_status(payload: &[u8]) -> Result<Option<u64>, HxError> {
+    let mut cursor = Cursor::new(payload);
+    let root = read_value(&mut cursor)?;
+
+    let map = root
+        .as_map()
+        .ok_or_else(|| HxError::protocol(fl!("msgpack-response-not-map")))?;
+
+    Ok(map
+        .iter()
+        .find(|(k, _)| k.as_u64() == Some(MSGPACK_KEY_STATUS))
+        .and_then(|(_, v)| v.as_u64()))
 }
 
 /// Parses the reply to the open-presets command into the device's setlists.
@@ -290,16 +302,24 @@ mod tests {
     }
 
     #[test]
-    fn response_status_accepts_zero() {
-        // {102: 1005, 103: 0}
-        assert!(check_response_status(b"\x82\x66\xCD\x03\xED\x67\x00").is_ok());
+    fn response_status_reads_code_from_captured_select_ack() {
+        // HX Stomp ACK to a successful selection: {102: 1010, 103: 1, 104: nil}
+        let payload = b"\x83\x66\xCD\x03\xF2\x67\x01\x68\xC0";
+        assert_eq!(response_status(payload).unwrap(), Some(1));
     }
 
     #[test]
-    fn response_status_rejects_non_zero() {
-        // {102: 1005, 103: 2}
-        let err = check_response_status(b"\x82\x66\xCD\x03\xED\x67\x02").unwrap_err();
-        assert!(matches!(err, HxError::Protocol(_)));
+    fn response_status_is_none_without_status_key() {
+        // {102: 1005}
+        assert_eq!(response_status(b"\x81\x66\xCD\x03\xED").unwrap(), None);
+    }
+
+    #[test]
+    fn response_status_rejects_non_map_envelope() {
+        assert!(matches!(
+            response_status(b"\x01"),
+            Err(HxError::Protocol(_))
+        ));
     }
 
     #[test]

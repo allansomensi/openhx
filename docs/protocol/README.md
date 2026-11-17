@@ -24,6 +24,7 @@ This directory documents the USB bulk transfer protocol used to communicate with
 | [presets/setlists.md](./presets/setlists.md) | Read the device's setlist table |
 | [presets/list.md](./presets/list.md) | Enumerate the preset names of a setlist |
 | [presets/select.md](./presets/select.md) | Make a preset the device's active preset |
+| [presets/rename.md](./presets/rename.md) | Store a new name for a preset |
 | [presets/data-format.md](./presets/data-format.md) | MessagePack payload format and preset data structure |
 
 ### Reference

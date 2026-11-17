@@ -49,6 +49,16 @@ All OUT packets are immediately followed by a bulk IN read.
 |---|---|---|---|---|---|---|
 | 6 | SELECT_PRESET | OUT | 40 | `0x06` | `0x04` | Dynamic: byte 34 = setlist, byte 36 = preset slot. Replaces OPEN_PRESETS in a select session |
 
+---
+
+## Preset Rename
+
+> Documented in: [presets/rename.md](./presets/rename.md)
+
+| Step | Name | Direction | Length | seq | cmd | Notes |
+|---|---|---|---|---|---|---|
+| 6 | RENAME_PRESET | OUT | variable | `0x06` | `0x04` | Dynamic: byte 34 = setlist, byte 36 = preset slot, name from byte 39. Replaces OPEN_PRESETS in a rename session |
+
 The ACK is followed by an unsolicited burst of notification packets that must be drained.
 
 ---

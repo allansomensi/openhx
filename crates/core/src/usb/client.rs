@@ -1,5 +1,5 @@
 use super::{
-    parser::{check_response_status, parse_msgpack_stream, parse_setlists, response_payload},
+    parser::{parse_msgpack_stream, parse_setlists, response_payload, response_status},
     protocol::*,
 };
 use crate::{
@@ -314,8 +314,12 @@ impl Client {
         self.handle.write_bulk(EP_OUT, &request, timeout)?;
         let n = self.read_for_seq(seq, &mut buf, timeout)?;
 
-        // The reply envelope reports whether the device accepted the name.
-        check_response_status(response_payload(&buf, n)?)?;
+        // The status code's meaning differs per command (a successful select
+        // reports `1`, the setlist reply `0`), and no rename reply has been
+        // captured yet. Log it rather than guess which value means success;
+        // the arguments were validated before sending.
+        let status = response_status(response_payload(&buf, n)?)?;
+        tracing::debug!(setlist, preset, ?status, "rename ACK");
 
         // The device broadcasts the changed name to its other channels; clear
         // those notifications before the next operation.
