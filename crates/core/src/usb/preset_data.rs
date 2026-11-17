@@ -273,8 +273,8 @@ mod tests {
             .collect();
         assert_eq!(path2, [3]);
 
-        // Delays and reverbs end with their trails switch, and tempo sync
-        // comes before the note value.
+        // Delays and reverbs end with their trails switch; Pitch Echo stores
+        // tempo sync before the note value.
         for block in &cathedral.blocks {
             assert!(block.param_defs().is_some(), "{}", block.name());
         }

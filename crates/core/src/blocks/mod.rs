@@ -523,6 +523,25 @@ mod tests {
     }
 
     #[test]
+    fn tempo_sync_order_follows_the_device() {
+        // Captured from an HX Stomp: Simple Delay (80) stores the note value
+        // before the tempo sync switch, Pitch Echo (334) the other way round.
+        let ids = |id| -> Vec<_> {
+            model_info(id)
+                .unwrap()
+                .params
+                .iter()
+                .map(|p| p.id)
+                .collect()
+        };
+        let simple = ids(80);
+        let pitch = ids(334);
+        let pos = |ids: &[&str], id| ids.iter().position(|&p| p == id).unwrap();
+        assert!(pos(&simple, "SyncSelect1") < pos(&simple, "TempoSync1"));
+        assert!(pos(&pitch, "TempoSync1") < pos(&pitch, "SyncSelect1"));
+    }
+
+    #[test]
     fn stereo_variants_carry_their_stereo_only_parameters() {
         // Ducked Delay: mono 77, stereo 85; "Scale" exists in stereo only.
         let has_scale = |id| {
