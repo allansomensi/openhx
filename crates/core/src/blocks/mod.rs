@@ -26,6 +26,26 @@ pub enum BlockCategory {
 }
 
 impl BlockCategory {
+    /// Every category, sorted by label.
+    pub const ALL: [Self; 16] = [
+        Self::Amp,
+        Self::AmpCab,
+        Self::Cab,
+        Self::Delay,
+        Self::Distortion,
+        Self::Dynamic,
+        Self::Eq,
+        Self::Filter,
+        Self::ImpulseResponse,
+        Self::Modulation,
+        Self::PitchSynth,
+        Self::Preamp,
+        Self::Reverb,
+        Self::SendReturn,
+        Self::VolumePan,
+        Self::Wah,
+    ];
+
     /// The category's name as the device and HX Edit show it.
     pub fn label(self) -> &'static str {
         match self {
@@ -83,6 +103,24 @@ pub struct ModelInfo {
     pub id: u16,
     pub category: BlockCategory,
     pub name: &'static str,
+}
+
+/// The models a block of `category` can hold, sorted by name.
+///
+/// An amp+cab block picks its model from the amps, so [`BlockCategory::AmpCab`]
+/// lists those.
+pub fn models_in(category: BlockCategory) -> Vec<ModelInfo> {
+    let wanted = match category {
+        BlockCategory::AmpCab => BlockCategory::Amp,
+        other => other,
+    };
+    let mut models: Vec<ModelInfo> = MODELS
+        .iter()
+        .filter(|&&(_, c, _)| c == wanted)
+        .map(|&(id, category, name)| ModelInfo { id, category, name })
+        .collect();
+    models.sort_unstable_by(|a, b| a.name.cmp(b.name).then(a.id.cmp(&b.id)));
+    models
 }
 
 /// Looks up a model by the ID the device reports for it.
@@ -155,6 +193,14 @@ impl Block {
         }
     }
 
+    /// The ID of the model that defines the block: the model itself, or the
+    /// amp of an amp+cab block.
+    pub fn model_id(&self) -> u16 {
+        match self.kind {
+            BlockKind::Model(id) | BlockKind::AmpCab { amp: id, .. } => id,
+        }
+    }
+
     /// The block's display name; unknown models show their ID.
     pub fn name(&self) -> String {
         let model_name =
@@ -185,6 +231,34 @@ mod tests {
             params: vec![],
             cab_params: vec![],
         }
+    }
+
+    #[test]
+    fn all_categories_are_listed_once_and_sorted() {
+        let labels: Vec<_> = BlockCategory::ALL.iter().map(|c| c.label()).collect();
+        let mut sorted = labels.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(labels, sorted);
+    }
+
+    #[test]
+    fn models_in_lists_a_category_sorted_by_name() {
+        let cabs = models_in(BlockCategory::Cab);
+        assert!(cabs.iter().all(|m| m.category == BlockCategory::Cab));
+        assert!(cabs.windows(2).all(|w| w[0].name <= w[1].name));
+        assert!(cabs.iter().any(|m| m.id == 72));
+    }
+
+    #[test]
+    fn amp_cab_lists_the_amps() {
+        let amps = models_in(BlockCategory::AmpCab);
+        assert!(!amps.is_empty());
+        assert!(amps.iter().all(|m| m.category == BlockCategory::Amp));
+        assert_eq!(
+            block(BlockKind::AmpCab { amp: 349, cab: 72 }).model_id(),
+            349
+        );
     }
 
     #[test]

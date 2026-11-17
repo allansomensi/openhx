@@ -1,9 +1,15 @@
-use crate::{app::App, message::Message, state::AppState, view::PRESET_LIST_ID};
+use crate::{
+    app::App,
+    blocks_view::{DEVICE_TYPE_LIST_ID, MODULE_LIST_ID},
+    message::Message,
+    state::AppState,
+    view::PRESET_LIST_ID,
+};
 use iced::Task;
 use iced::widget::operation::{RelativeOffset, snap_to};
 use openhx_core::{
-    ActivePreset, Block, HxError, PRESET_NAME_MAX_LEN, reset_shared_device, validate_preset_name,
-    with_device,
+    ActivePreset, Block, BlockCategory, HxError, PRESET_NAME_MAX_LEN, blocks::models_in,
+    reset_shared_device, validate_preset_name, with_device,
 };
 use tracing::{debug, error, info};
 
@@ -42,6 +48,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             app.blocks_loading = false;
             app.blocks_error = None;
             app.selected_block = None;
+            app.browse_category = None;
             Task::none()
         }
         Message::SetlistChosen(setlist) => {
@@ -182,6 +189,7 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
             if app.selected_block().is_none() {
                 app.selected_block = None;
             }
+            app.browse_category = None;
             scroll
         }
         Message::BlocksLoadFailed(err) => {
@@ -192,8 +200,52 @@ pub fn handle_message(app: &mut App, message: Message) -> Task<Message> {
         }
         Message::BlockSelected(path, position) => {
             app.selected_block = Some((path, position));
-            Task::none()
+            app.browse_category = None;
+            scroll_lists_to_block(app)
         }
+        Message::DeviceTypeChosen(category) => {
+            app.browse_category = Some(category);
+            scroll_lists_to_block(app)
+        }
+    }
+}
+
+/// Scrolls the device type and module lists so the browsed type and the
+/// selected block's model are in view.
+fn scroll_lists_to_block(app: &App) -> Task<Message> {
+    let Some(block) = app.selected_block() else {
+        return Task::none();
+    };
+    let Some(category) = app.browse_category.or_else(|| block.category()) else {
+        return Task::none();
+    };
+
+    let type_index = BlockCategory::ALL
+        .iter()
+        .position(|&c| c == category)
+        .unwrap_or(0);
+    let models = models_in(category);
+    // Show the block's model when browsing its type, else the list's top.
+    let model_index = models
+        .iter()
+        .position(|m| m.id == block.model_id())
+        .unwrap_or(0);
+
+    Task::batch([
+        snap_to(
+            DEVICE_TYPE_LIST_ID,
+            relative(type_index, BlockCategory::ALL.len()),
+        ),
+        snap_to(MODULE_LIST_ID, relative(model_index, models.len())),
+    ])
+}
+
+/// The scroll offset that brings row `index` of `len` rows into view.
+fn relative(index: usize, len: usize) -> RelativeOffset {
+    let last = len.saturating_sub(1).max(1);
+    RelativeOffset {
+        x: 0.0,
+        y: index as f32 / last as f32,
     }
 }
 
@@ -217,9 +269,7 @@ fn show_active_preset(app: &mut App, active: ActivePreset) -> Task<Message> {
     };
     app.rename_input = app.presets[position].name.clone();
 
-    let last = app.presets.len().saturating_sub(1).max(1);
-    let y = position as f32 / last as f32;
-    snap_to(PRESET_LIST_ID, RelativeOffset { x: 0.0, y })
+    snap_to(PRESET_LIST_ID, relative(position, app.presets.len()))
 }
 
 /// Reads which preset is active and its blocks, first switching to `select`

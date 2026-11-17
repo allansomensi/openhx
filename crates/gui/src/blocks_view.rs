@@ -9,7 +9,7 @@ use iced::widget::{Space, button, column, container, progress_bar, row, scrollab
 use iced::{Alignment, Background, Border, Color, Element, Length, Theme};
 use openhx_core::{
     Block, BlockCategory, ParamValue,
-    blocks::{PATH_COUNT, POSITIONS_PER_PATH},
+    blocks::{PATH_COUNT, POSITIONS_PER_PATH, models_in},
 };
 use openhx_i18n::fl;
 
@@ -196,15 +196,68 @@ fn block_box(
     tile.into()
 }
 
-/// Type, model and settings of the selected block.
+/// Widget IDs of the device type and module name lists, for scrolling them
+/// to the selected block.
+pub const DEVICE_TYPE_LIST_ID: &str = "device-type-list";
+pub const MODULE_LIST_ID: &str = "module-list";
+
+/// Device type list, module name list and settings of the selected block.
 fn details(app: &App) -> Element<'_, Message> {
     let Some(block) = app.selected_block() else {
         return muted(fl!("block-hint"));
     };
 
-    let category = block
-        .category()
-        .map_or_else(|| fl!("block-unknown-category"), |c| c.label().to_owned());
+    let row = row![
+        device_type_list(app, block).width(Length::FillPortion(2)),
+        module_list(app, block).width(Length::FillPortion(3)),
+        settings_panel(block).width(Length::FillPortion(6)),
+    ]
+    .spacing(10)
+    .height(Length::Fill);
+
+    container(row)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+}
+
+/// Every block category; the browsed one is highlighted and picking another
+/// shows its models.
+fn device_type_list<'a>(app: &App, block: &Block) -> iced::widget::Container<'a, Message> {
+    let browsed = app.browse_category.or_else(|| block.category());
+
+    let entries = BlockCategory::ALL
+        .iter()
+        .fold(column![].spacing(1), |col, &category| {
+            col.push(list_entry(
+                category.label().to_owned(),
+                browsed == Some(category),
+                Some(Message::DeviceTypeChosen(category)),
+            ))
+        });
+
+    list_panel(fl!("block-device-type"), entries, DEVICE_TYPE_LIST_ID)
+}
+
+/// The models of the browsed category, with the block's own model
+/// highlighted. Read-only: picking a model is not possible yet.
+fn module_list<'a>(app: &App, block: &Block) -> iced::widget::Container<'a, Message> {
+    let browsed = app.browse_category.or_else(|| block.category());
+    let current = block.model_id();
+
+    let entries = browsed
+        .map(models_in)
+        .unwrap_or_default()
+        .into_iter()
+        .fold(column![].spacing(1), |col, model| {
+            col.push(list_entry(model.name.to_owned(), model.id == current, None))
+        });
+
+    list_panel(fl!("block-module-name"), entries, MODULE_LIST_ID)
+}
+
+/// The block's position, state and parameter values.
+fn settings_panel(block: &Block) -> iced::widget::Container<'_, Message> {
     let state = if block.enabled {
         fl!("block-on")
     } else {
@@ -214,21 +267,11 @@ fn details(app: &App) -> Element<'_, Message> {
     // Shown 1-based, like the device does.
     let path_number: u32 = u32::from(block.path) + 1;
     let position_number: u32 = u32::from(block.position) + 1;
-
-    let info = column![
-        field(fl!("block-device-type"), category),
-        field(fl!("block-module-name"), block.name()),
-        field(
-            fl!(
-                "block-position",
-                path = path_number,
-                position = position_number
-            ),
-            state
-        ),
-    ]
-    .spacing(12)
-    .width(Length::FillPortion(2));
+    let location = fl!(
+        "block-position",
+        path = path_number,
+        position = position_number
+    );
 
     let mut settings = column![].spacing(6);
     for (i, value) in block.params.iter().enumerate() {
@@ -240,27 +283,77 @@ fn details(app: &App) -> Element<'_, Message> {
         settings = settings.push(param_row(fl!("block-cab-param", number = number), value));
     }
 
-    let settings_panel = column![
+    let content = column![
         text(fl!("block-settings")).size(14),
+        text(format!("{location} · {state}")).size(13),
         muted(fl!("block-read-only")),
         scrollable(settings).height(Length::Fill),
     ]
-    .spacing(8)
-    .width(Length::FillPortion(5));
+    .spacing(8);
 
-    container(row![info, settings_panel].spacing(20))
-        .padding(12)
-        .width(Length::Fill)
+    container(content)
+        .padding(10)
         .height(Length::Fill)
         .style(panel_style)
-        .into()
 }
 
-/// A labeled value in the block info column.
-fn field<'a>(label: String, value: String) -> Element<'a, Message> {
-    column![muted(label), text(value).size(14)]
-        .spacing(2)
-        .into()
+/// A titled panel holding a scrollable list.
+fn list_panel<'a>(
+    title: String,
+    entries: iced::widget::Column<'a, Message>,
+    id: &'static str,
+) -> iced::widget::Container<'a, Message> {
+    let content = column![
+        text(title).size(14),
+        scrollable(entries).id(id).height(Length::Fill),
+    ]
+    .spacing(8);
+
+    container(content)
+        .padding(10)
+        .height(Length::Fill)
+        .style(panel_style)
+}
+
+/// One list row; clickable when `on_press` is given, highlighted when
+/// `selected`.
+fn list_entry<'a>(
+    label: String,
+    selected: bool,
+    on_press: Option<Message>,
+) -> Element<'a, Message> {
+    let background = if selected {
+        Some(Background::Color(Color::from_rgba(
+            LINE_COLOR.r,
+            LINE_COLOR.g,
+            LINE_COLOR.b,
+            0.45,
+        )))
+    } else {
+        None
+    };
+
+    let entry = button(text(label).size(13))
+        .width(Length::Fill)
+        .padding([2, 6])
+        .on_press_maybe(on_press)
+        // A read-only entry has no `on_press`; draw it like an active one
+        // instead of greyed out.
+        .style(move |theme: &Theme, status| {
+            let hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: background
+                    .or_else(|| hovered.then(|| Color::from_rgba(1.0, 1.0, 1.0, 0.06).into())),
+                text_color: theme.palette().text,
+                border: Border {
+                    radius: 3.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        });
+
+    entry.into()
 }
 
 /// One parameter: its label, a bar for values on the 0–1 knob scale, and

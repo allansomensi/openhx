@@ -20,7 +20,6 @@ block-hint = Selecione um bloco para ver suas configurações.
 block-device-type = Tipo de Dispositivo
 block-module-name = Nome do Módulo
 block-settings = Configurações do Módulo
-block-unknown-category = Desconhecido
 block-position = Caminho { $path }, posição { $position }
 block-param = Parâmetro { $number }
 block-cab-param = Parâmetro do gabinete { $number }

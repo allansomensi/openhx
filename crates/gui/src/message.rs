@@ -1,4 +1,4 @@
-use openhx_core::{ActivePreset, Block, Preset, Setlist};
+use openhx_core::{ActivePreset, Block, BlockCategory, Preset, Setlist};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -39,4 +39,6 @@ pub enum Message {
     BlocksLoadFailed(String),
     /// The user picked the block at `(path, position)` in the signal chain.
     BlockSelected(u8, u8),
+    /// The user picked a device type to browse its models.
+    DeviceTypeChosen(BlockCategory),
 }

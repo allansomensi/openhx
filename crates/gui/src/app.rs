@@ -1,6 +1,6 @@
 use crate::{message::Message, state::AppState, update, view, worker};
 use iced::{Subscription, Task};
-use openhx_core::{Block, Preset, Setlist};
+use openhx_core::{Block, BlockCategory, Preset, Setlist};
 
 pub struct App {
     pub state: AppState,
@@ -26,6 +26,9 @@ pub struct App {
     pub blocks_error: Option<String>,
     /// Block whose settings are shown, as `(path, position)`.
     pub selected_block: Option<(u8, u8)>,
+    /// Device type picked in the type list; `None` follows the selected
+    /// block's own type.
+    pub browse_category: Option<BlockCategory>,
 }
 
 impl Default for App {
@@ -45,6 +48,7 @@ impl Default for App {
             blocks_loading: false,
             blocks_error: None,
             selected_block: None,
+            browse_category: None,
         }
     }
 }

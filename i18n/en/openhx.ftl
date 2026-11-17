@@ -20,7 +20,6 @@ block-hint = Select a block to see its settings.
 block-device-type = Device Type
 block-module-name = Module Name
 block-settings = Module Settings
-block-unknown-category = Unknown
 block-position = Path { $path }, position { $position }
 block-param = Parameter { $number }
 block-cab-param = Cab parameter { $number }
