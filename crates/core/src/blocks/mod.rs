@@ -1,8 +1,11 @@
 //! The blocks of a preset: what sits in each position of its signal paths.
 
 mod catalog;
+#[rustfmt::skip]
+mod definitions;
 
 use catalog::MODELS;
+use definitions::DEFINITIONS;
 
 /// The kind of processing a block's model performs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -123,6 +126,23 @@ pub fn models_in(category: BlockCategory) -> Vec<ModelInfo> {
     models
 }
 
+/// The parameter definitions of a model, in the order the device stores the
+/// values; `None` for models without known definitions.
+pub fn model_params(id: u16) -> Option<&'static [ParamDef]> {
+    DEFINITIONS
+        .binary_search_by_key(&id, |&(model_id, _, _)| model_id)
+        .ok()
+        .map(|i| DEFINITIONS[i].2)
+}
+
+/// The symbolic ID HX Edit uses for a model, such as `HD2_AmpLine6Badonk`.
+pub fn model_symbolic_id(id: u16) -> Option<&'static str> {
+    DEFINITIONS
+        .binary_search_by_key(&id, |&(model_id, _, _)| model_id)
+        .ok()
+        .map(|i| DEFINITIONS[i].1)
+}
+
 /// Looks up a model by the ID the device reports for it.
 pub fn model_info(id: u16) -> Option<ModelInfo> {
     MODELS
@@ -156,6 +176,104 @@ impl std::fmt::Display for ParamValue {
             Self::Bool(false) => f.write_str("off"),
             Self::Text(s) => f.write_str(s.trim_end_matches('\0')),
         }
+    }
+}
+
+/// The type and range of a parameter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ParamKind {
+    Float { min: f64, max: f64, default: f64 },
+    Int { min: i64, max: i64, default: i64 },
+    Bool { default: bool },
+}
+
+/// Describes one parameter of a model, as HX Edit defines it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ParamDef {
+    /// HX Edit's symbolic ID, such as `Drive` or `@mic`.
+    pub id: &'static str,
+    /// The name HX Edit shows.
+    pub name: &'static str,
+    /// How HX Edit displays the value (`percent`, `volume`, …); empty when
+    /// it has no special display.
+    pub display: &'static str,
+    pub kind: ParamKind,
+}
+
+impl ParamDef {
+    /// Where `value` lies within the parameter's range, from `0.0` to `1.0`;
+    /// `None` for switches and values of the wrong type.
+    pub fn fraction(&self, value: &ParamValue) -> Option<f32> {
+        let (value, min, max) = match (self.kind, value) {
+            (ParamKind::Float { min, max, .. }, ParamValue::Float(v)) => (*v, min, max),
+            (ParamKind::Int { min, max, .. }, ParamValue::Int(v)) => {
+                (*v as f64, min as f64, max as f64)
+            }
+            _ => return None,
+        };
+        (max > min).then(|| ((value - min) / (max - min)).clamp(0.0, 1.0) as f32)
+    }
+
+    /// Formats `value` the way HX Edit shows it, with its unit.
+    ///
+    /// Switches format as `on`/`off`; selectors whose choices are named on
+    /// the device (mic, note value, …) show their raw number.
+    pub fn format(&self, value: &ParamValue) -> String {
+        let display = self.display;
+        match (self.kind, value) {
+            (ParamKind::Float { min, max, .. }, ParamValue::Float(v)) => {
+                let v = *v;
+                // Cut filters at the end of their range are bypassed.
+                let cut_off = (display.contains("low_cut") && v <= min)
+                    || (display.contains("high_cut") && v >= max);
+                if cut_off {
+                    "Off".to_owned()
+                } else if display.contains("cut") || display.contains("freq") {
+                    format_frequency(v)
+                } else if display.contains("time_ms") {
+                    format!("{:.0} ms", v * 1000.0)
+                } else if display.starts_with("percent") {
+                    format!("{:.0}%", v * 100.0)
+                } else if display.starts_with("volume") {
+                    format!("{v:.1} dB")
+                } else if display == "pan" {
+                    format_pan(v)
+                } else if display == "cab_mic_distance" {
+                    format!("{v:.1}\"")
+                } else if display == "CabMicIrs_Angle" {
+                    format!("{v:.0}°")
+                } else if (min, max) == (0.0, 1.0) {
+                    // Knobs run from 0 to 10 on the device.
+                    format!("{:.1}", v * 10.0)
+                } else {
+                    format!("{v:.2}")
+                }
+            }
+            (ParamKind::Int { .. }, ParamValue::Int(v)) if display == "integer_slider_1based" => {
+                (v + 1).to_string()
+            }
+            _ => value.to_string(),
+        }
+    }
+}
+
+fn format_frequency(hz: f64) -> String {
+    if hz >= 1000.0 {
+        format!("{:.1} kHz", hz / 1000.0)
+    } else {
+        format!("{hz:.0} Hz")
+    }
+}
+
+/// Pan runs from `0.0` (left) over `0.5` (center) to `1.0` (right).
+fn format_pan(v: f64) -> String {
+    let amount = ((v - 0.5).abs() * 200.0).round();
+    if amount == 0.0 {
+        "C".to_owned()
+    } else if v < 0.5 {
+        format!("L{amount:.0}")
+    } else {
+        format!("R{amount:.0}")
     }
 }
 
@@ -201,6 +319,20 @@ impl Block {
         }
     }
 
+    /// Definitions of [`Block::params`], when they are known and match the
+    /// values the device reported.
+    pub fn param_defs(&self) -> Option<&'static [ParamDef]> {
+        matching_defs(self.model_id(), &self.params)
+    }
+
+    /// Definitions of [`Block::cab_params`] of an amp+cab block.
+    pub fn cab_param_defs(&self) -> Option<&'static [ParamDef]> {
+        match self.kind {
+            BlockKind::AmpCab { cab, .. } => matching_defs(cab, &self.cab_params),
+            BlockKind::Model(_) => None,
+        }
+    }
+
     /// The block's display name; unknown models show their ID.
     pub fn name(&self) -> String {
         let model_name =
@@ -210,6 +342,14 @@ impl Block {
             BlockKind::AmpCab { amp, cab } => format!("{} + {}", model_name(amp), model_name(cab)),
         }
     }
+}
+
+/// A model's definitions, if there is one for each of `values`.
+///
+/// A count mismatch means a firmware with other parameters; then no names
+/// are better than wrong ones.
+fn matching_defs(model: u16, values: &[ParamValue]) -> Option<&'static [ParamDef]> {
+    model_params(model).filter(|defs| defs.len() == values.len())
 }
 
 /// Number of signal paths in a preset.
@@ -288,6 +428,80 @@ mod tests {
         let b = block(BlockKind::Model(9999));
         assert_eq!(b.category(), None);
         assert_eq!(b.name(), "Model 9999");
+    }
+
+    #[test]
+    fn definition_table_is_sorted_and_covers_known_models() {
+        assert!(DEFINITIONS.windows(2).all(|w| w[0].0 < w[1].0));
+        assert!(
+            DEFINITIONS
+                .iter()
+                .all(|&(id, _, _)| model_info(id).is_some())
+        );
+    }
+
+    #[test]
+    fn definitions_name_parameters_in_device_order() {
+        let horizon: Vec<_> = model_params(582).unwrap().iter().map(|p| p.name).collect();
+        assert_eq!(
+            horizon,
+            ["Drive", "Attack", "Bright", "Gate", "GateRange", "Level"]
+        );
+        assert_eq!(model_symbolic_id(582), Some("HD2_DistHorizonDrive"));
+
+        // A cab's mic selector is stored after its regular parameters.
+        let cab = model_params(72).unwrap();
+        assert_eq!(cab.first().unwrap().id, "Distance");
+        assert_eq!(cab.last().unwrap().id, "@mic");
+    }
+
+    #[test]
+    fn stereo_variants_carry_their_stereo_only_parameters() {
+        // Ducked Delay: mono 77, stereo 85; "Scale" exists in stereo only.
+        let has_scale = |id| model_params(id).unwrap().iter().any(|p| p.id == "Scale");
+        assert!(!has_scale(77));
+        assert!(has_scale(85));
+    }
+
+    #[test]
+    fn param_defs_require_a_matching_value_count() {
+        let mut b = block(BlockKind::Model(582));
+        b.params = vec![ParamValue::Float(0.0); 6];
+        assert_eq!(b.param_defs().map(<[_]>::len), Some(6));
+
+        b.params.pop();
+        assert!(b.param_defs().is_none());
+    }
+
+    #[test]
+    fn param_defs_format_values_with_units() {
+        let def = |display, min, max| ParamDef {
+            id: "x",
+            name: "x",
+            display,
+            kind: ParamKind::Float {
+                min,
+                max,
+                default: min,
+            },
+        };
+        let f = ParamValue::Float;
+        assert_eq!(def("generic_knob", 0.0, 1.0).format(&f(0.37)), "3.7");
+        assert_eq!(def("percent", 0.0, 1.0).format(&f(0.5)), "50%");
+        assert_eq!(def("volume", -60.0, 6.0).format(&f(-3.0)), "-3.0 dB");
+        assert_eq!(def("time_ms", 0.0, 2.0).format(&f(0.47)), "470 ms");
+        assert_eq!(def("cab_low_cut", 19.9, 500.0).format(&f(19.9)), "Off");
+        assert_eq!(def("cab_low_cut", 19.9, 500.0).format(&f(80.0)), "80 Hz");
+        assert_eq!(
+            def("cab_high_cut", 500.0, 20100.0).format(&f(8000.0)),
+            "8.0 kHz"
+        );
+        assert_eq!(def("pan", 0.0, 1.0).format(&f(0.5)), "C");
+        assert_eq!(def("pan", 0.0, 1.0).format(&f(0.25)), "L50");
+
+        let volume = def("volume", -60.0, 6.0);
+        assert_eq!(volume.fraction(&f(6.0)), Some(1.0));
+        assert_eq!(volume.fraction(&ParamValue::Bool(true)), None);
     }
 
     #[test]

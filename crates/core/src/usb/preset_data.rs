@@ -284,6 +284,17 @@ mod tests {
     ];
 
     #[test]
+    fn captured_blocks_match_their_parameter_definitions() {
+        let blocks = parse_active_preset(HX_STOMP_STREAM).unwrap();
+
+        for block in &blocks {
+            assert!(block.param_defs().is_some(), "{}", block.name());
+        }
+        let cab = blocks[2].param_defs().unwrap();
+        assert_eq!(cab[2].format(&blocks[2].params[2]), "8.0 kHz");
+    }
+
+    #[test]
     fn active_preset_info_reads_setlist_and_slot() {
         let active = parse_active_preset_info(ACTIVE_INFO_REPLY, 126).unwrap();
         assert_eq!(

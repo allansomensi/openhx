@@ -23,6 +23,7 @@ block-settings = Configurações do Módulo
 block-position = Caminho { $path }, posição { $position }
 block-param = Parâmetro { $number }
 block-cab-param = Parâmetro do gabinete { $number }
+block-cab-param-named = Gabinete: { $name }
 block-on = ligado
 block-off = desligado
 block-read-only = Os valores são somente leitura; alterá-los ainda não é suportado.

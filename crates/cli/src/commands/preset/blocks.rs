@@ -1,5 +1,7 @@
 use crate::args::DeviceArg;
-use openhx_core::{Block, connect_client, device::KnownDevice, error::HxError};
+use openhx_core::{
+    Block, ParamDef, ParamValue, connect_client, device::KnownDevice, error::HxError,
+};
 use openhx_i18n::fl;
 
 /// Executes the `preset blocks` CLI command.
@@ -32,10 +34,13 @@ pub fn execute(device: Option<DeviceArg>) -> Result<(), HxError> {
     for block in &blocks {
         println!("{}", format_block(block));
         if !block.params.is_empty() {
-            println!("      {}", format_params(&block.params));
+            println!("      {}", format_params(&block.params, block.param_defs()));
         }
         if !block.cab_params.is_empty() {
-            println!("      {}", format_params(&block.cab_params));
+            println!(
+                "      {}",
+                format_params(&block.cab_params, block.cab_param_defs())
+            );
         }
     }
 
@@ -60,10 +65,16 @@ fn format_block(block: &Block) -> String {
     )
 }
 
-fn format_params(params: &[openhx_core::ParamValue]) -> String {
+/// Formats values as `Drive 3.7, Level 0.0 dB` when their definitions are
+/// known, otherwise as bare values.
+fn format_params(params: &[ParamValue], defs: Option<&[ParamDef]>) -> String {
     params
         .iter()
-        .map(ToString::to_string)
+        .enumerate()
+        .map(|(i, value)| match defs {
+            Some(defs) => format!("{} {}", defs[i].name, defs[i].format(value)),
+            None => value.to_string(),
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }

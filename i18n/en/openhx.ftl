@@ -23,6 +23,7 @@ block-settings = Module Settings
 block-position = Path { $path }, position { $position }
 block-param = Parameter { $number }
 block-cab-param = Cab parameter { $number }
+block-cab-param-named = Cab: { $name }
 block-on = on
 block-off = off
 block-read-only = Values are read-only; changing them is not supported yet.

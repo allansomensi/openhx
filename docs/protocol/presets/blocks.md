@@ -176,6 +176,8 @@ A parameter map is `{2: count, 3: …, 4: [values]}`. Values are in the model's 
 
 Model IDs map to model names and categories; openhx ships that table in `crates/core/src/blocks/catalog.rs`.
 
+Parameter names, types, ranges and display units are defined per model in `crates/core/src/blocks/definitions.rs`. The value list holds a model's regular parameters in the order HX Edit lists them, followed by a cab's mic selector. The enabled state is key `10`, and the stereo variant is a separate model; some parameters exist in the stereo variant only. This is verified against HX Stomp captures for a distortion, an amp and a cab. openhx uses a definition only when its parameter count equals the number of values the device sent.
+
 ### Example
 
 A drive block in path 1, position 1:

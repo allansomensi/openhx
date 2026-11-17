@@ -8,7 +8,7 @@ use crate::{app::App, message::Message};
 use iced::widget::{Space, button, column, container, progress_bar, row, scrollable, space, text};
 use iced::{Alignment, Background, Border, Color, Element, Length, Theme};
 use openhx_core::{
-    Block, BlockCategory, ParamValue,
+    Block, BlockCategory, ParamDef, ParamValue,
     blocks::{PATH_COUNT, POSITIONS_PER_PATH, models_in},
 };
 use openhx_i18n::fl;
@@ -274,13 +274,27 @@ fn settings_panel(block: &Block) -> iced::widget::Container<'_, Message> {
     );
 
     let mut settings = column![].spacing(6);
+    let defs = block.param_defs();
     for (i, value) in block.params.iter().enumerate() {
-        let number: usize = i + 1;
-        settings = settings.push(param_row(fl!("block-param", number = number), value));
+        let def = defs.map(|defs| &defs[i]);
+        let label = def.map_or_else(
+            || {
+                let number: usize = i + 1;
+                fl!("block-param", number = number)
+            },
+            |d| d.name.to_owned(),
+        );
+        settings = settings.push(param_row(label, value, def));
     }
+    let cab_defs = block.cab_param_defs();
     for (i, value) in block.cab_params.iter().enumerate() {
+        let def = cab_defs.map(|defs| &defs[i]);
         let number: usize = i + 1;
-        settings = settings.push(param_row(fl!("block-cab-param", number = number), value));
+        let label = def.map_or_else(
+            || fl!("block-cab-param", number = number),
+            |d| fl!("block-cab-param-named", name = d.name),
+        );
+        settings = settings.push(param_row(label, value, def));
     }
 
     let content = column![
@@ -358,9 +372,19 @@ fn list_entry<'a>(
 
 /// One parameter: its label, a bar for values on the 0–1 knob scale, and
 /// the raw value.
-fn param_row<'a>(label: String, value: &ParamValue) -> Element<'a, Message> {
-    let bar: Element<'a, Message> = match value {
-        ParamValue::Float(v) if (0.0..=1.0).contains(v) => progress_bar(0.0..=1.0, *v as f32)
+fn param_row<'a>(
+    label: String,
+    value: &ParamValue,
+    def: Option<&ParamDef>,
+) -> Element<'a, Message> {
+    // Without a definition only values that look like a 0–1 knob get a bar.
+    let fraction = match (def, value) {
+        (Some(def), _) => def.fraction(value),
+        (None, ParamValue::Float(v)) if (0.0..=1.0).contains(v) => Some(*v as f32),
+        (None, _) => None,
+    };
+    let bar: Element<'a, Message> = match fraction {
+        Some(fraction) => progress_bar(0.0..=1.0, fraction)
             .girth(8)
             .style(|_theme: &Theme| progress_bar::Style {
                 background: Color::from_rgb(0.22, 0.23, 0.25).into(),
@@ -371,19 +395,20 @@ fn param_row<'a>(label: String, value: &ParamValue) -> Element<'a, Message> {
                 },
             })
             .into(),
-        _ => Space::new().width(Length::Fill).into(),
+        None => Space::new().width(Length::Fill).into(),
     };
 
-    let shown = match value {
-        ParamValue::Bool(true) => fl!("block-on"),
-        ParamValue::Bool(false) => fl!("block-off"),
-        other => other.to_string(),
+    let shown = match (value, def) {
+        (ParamValue::Bool(true), _) => fl!("block-on"),
+        (ParamValue::Bool(false), _) => fl!("block-off"),
+        (other, Some(def)) => def.format(other),
+        (other, None) => other.to_string(),
     };
 
     row![
         text(label).size(13).width(150),
         container(bar).width(Length::Fill),
-        text(shown).size(13).width(70).align_x(Alignment::End),
+        text(shown).size(13).width(80).align_x(Alignment::End),
     ]
     .spacing(10)
     .align_y(Alignment::Center)
