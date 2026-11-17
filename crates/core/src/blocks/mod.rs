@@ -1,11 +1,9 @@
 //! The blocks of a preset: what sits in each position of its signal paths.
 
-mod catalog;
 #[rustfmt::skip]
-mod definitions;
+mod catalog;
 
 use catalog::MODELS;
-use definitions::DEFINITIONS;
 
 /// The kind of processing a block's model performs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -101,57 +99,38 @@ impl std::fmt::Display for BlockCategory {
 }
 
 /// A known block model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ModelInfo {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Model {
+    /// The ID the device reports for the model.
     pub id: u16,
     pub category: BlockCategory,
     pub name: &'static str,
+    /// The ID HX Edit uses for the model, such as `HD2_AmpLine6Badonk`.
+    pub symbolic_id: &'static str,
+    /// The model's parameters, in the order the device stores their values.
+    pub params: &'static [ParamDef],
 }
 
 /// The models a block of `category` can hold, sorted by name.
 ///
 /// An amp+cab block picks its model from the amps, so [`BlockCategory::AmpCab`]
 /// lists those.
-pub fn models_in(category: BlockCategory) -> Vec<ModelInfo> {
+pub fn models_in(category: BlockCategory) -> Vec<&'static Model> {
     let wanted = match category {
         BlockCategory::AmpCab => BlockCategory::Amp,
         other => other,
     };
-    let mut models: Vec<ModelInfo> = MODELS
-        .iter()
-        .filter(|&&(_, c, _)| c == wanted)
-        .map(|&(id, category, name)| ModelInfo { id, category, name })
-        .collect();
+    let mut models: Vec<&Model> = MODELS.iter().filter(|m| m.category == wanted).collect();
     models.sort_unstable_by(|a, b| a.name.cmp(b.name).then(a.id.cmp(&b.id)));
     models
 }
 
-/// The parameter definitions of a model, in the order the device stores the
-/// values; `None` for models without known definitions.
-pub fn model_params(id: u16) -> Option<&'static [ParamDef]> {
-    DEFINITIONS
-        .binary_search_by_key(&id, |&(model_id, _, _)| model_id)
-        .ok()
-        .map(|i| DEFINITIONS[i].2)
-}
-
-/// The symbolic ID HX Edit uses for a model, such as `HD2_AmpLine6Badonk`.
-pub fn model_symbolic_id(id: u16) -> Option<&'static str> {
-    DEFINITIONS
-        .binary_search_by_key(&id, |&(model_id, _, _)| model_id)
-        .ok()
-        .map(|i| DEFINITIONS[i].1)
-}
-
 /// Looks up a model by the ID the device reports for it.
-pub fn model_info(id: u16) -> Option<ModelInfo> {
+pub fn model_info(id: u16) -> Option<&'static Model> {
     MODELS
-        .binary_search_by_key(&id, |&(model_id, _, _)| model_id)
+        .binary_search_by_key(&id, |m| m.id)
         .ok()
-        .map(|i| {
-            let (id, category, name) = MODELS[i];
-            ModelInfo { id, category, name }
-        })
+        .map(|i| &MODELS[i])
 }
 
 /// One parameter value as the device stores it.
@@ -361,7 +340,7 @@ impl Block {
 /// that differs from the definition; then no names are better than wrong
 /// ones.
 fn matching_defs(model: u16, values: &[ParamValue]) -> Option<&'static [ParamDef]> {
-    model_params(model).filter(|defs| {
+    model_info(model).map(|m| m.params).filter(|defs| {
         defs.len() == values.len()
             && defs
                 .iter()
@@ -443,7 +422,7 @@ mod tests {
 
     #[test]
     fn model_table_is_sorted_and_unique() {
-        assert!(MODELS.windows(2).all(|w| w[0].0 < w[1].0));
+        assert!(MODELS.windows(2).all(|w| w[0].id < w[1].id));
     }
 
     #[test]
@@ -471,26 +450,17 @@ mod tests {
     }
 
     #[test]
-    fn definition_table_is_sorted_and_covers_known_models() {
-        assert!(DEFINITIONS.windows(2).all(|w| w[0].0 < w[1].0));
-        assert!(
-            DEFINITIONS
-                .iter()
-                .all(|&(id, _, _)| model_info(id).is_some())
-        );
-    }
-
-    #[test]
     fn definitions_name_parameters_in_device_order() {
-        let horizon: Vec<_> = model_params(582).unwrap().iter().map(|p| p.name).collect();
+        let params = |id| model_info(id).unwrap().params;
+        let horizon: Vec<_> = params(582).iter().map(|p| p.name).collect();
         assert_eq!(
             horizon,
             ["Drive", "Attack", "Bright", "Gate", "GateRange", "Level"]
         );
-        assert_eq!(model_symbolic_id(582), Some("HD2_DistHorizonDrive"));
+        assert_eq!(model_info(582).unwrap().symbolic_id, "HD2_DistHorizonDrive");
 
         // A cab's mic selector is stored after its regular parameters.
-        let cab = model_params(72).unwrap();
+        let cab = params(72);
         assert_eq!(cab.first().unwrap().id, "Distance");
         assert_eq!(cab.last().unwrap().id, "@mic");
     }
@@ -498,7 +468,13 @@ mod tests {
     #[test]
     fn stereo_variants_carry_their_stereo_only_parameters() {
         // Ducked Delay: mono 77, stereo 85; "Scale" exists in stereo only.
-        let has_scale = |id| model_params(id).unwrap().iter().any(|p| p.id == "Scale");
+        let has_scale = |id| {
+            model_info(id)
+                .unwrap()
+                .params
+                .iter()
+                .any(|p| p.id == "Scale")
+        };
         assert!(!has_scale(77));
         assert!(has_scale(85));
     }
