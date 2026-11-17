@@ -72,6 +72,13 @@ fn response_result(payload: &[u8]) -> Result<rmpv::Value, HxError> {
         .unwrap_or(rmpv::Value::Nil))
 }
 
+/// Checks a command reply's envelope for a non-zero status code.
+///
+/// Used for write commands whose reply carries no result of interest.
+pub fn check_response_status(payload: &[u8]) -> Result<(), HxError> {
+    response_result(payload).map(|_| ())
+}
+
 /// Parses the reply to the open-presets command into the device's setlists.
 ///
 /// The result is an array of one-entry maps, each `{setlist_index: name}`.
@@ -279,6 +286,19 @@ mod tests {
         // {102: 1001, 103: 5, 104: []}
         let payload = b"\x83\x66\xCD\x03\xE9\x67\x05\x68\x90";
         let err = parse_setlists(payload).unwrap_err();
+        assert!(matches!(err, HxError::Protocol(_)));
+    }
+
+    #[test]
+    fn response_status_accepts_zero() {
+        // {102: 1005, 103: 0}
+        assert!(check_response_status(b"\x82\x66\xCD\x03\xED\x67\x00").is_ok());
+    }
+
+    #[test]
+    fn response_status_rejects_non_zero() {
+        // {102: 1005, 103: 2}
+        let err = check_response_status(b"\x82\x66\xCD\x03\xED\x67\x02").unwrap_err();
         assert!(matches!(err, HxError::Protocol(_)));
     }
 

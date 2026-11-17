@@ -2,7 +2,7 @@ use crate::{
     client::DeviceClient,
     device::{PROFILE_HX_STOMP_XL, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist},
+    models::{Preset, Setlist, validate_preset_name},
 };
 
 /// A simulated HX Stomp XL.
@@ -66,6 +66,21 @@ impl DeviceClient for MockClient {
         }
 
         eprintln!("[mock] select_preset(setlist={setlist}, preset={preset}) — OK");
+
+        Ok(())
+    }
+
+    /// Simulates a preset rename command.
+    ///
+    /// Applies the same validation as the USB client and returns `Ok(())`.
+    /// The mock's preset list is static, so the new name is not kept.
+    fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError> {
+        let profile = self.profile();
+        profile.validate_setlist(setlist)?;
+        profile.validate_preset(preset)?;
+        validate_preset_name(name)?;
+
+        eprintln!("[mock] rename_preset(setlist={setlist}, preset={preset}, name={name:?}) — OK");
 
         Ok(())
     }
@@ -275,6 +290,25 @@ mod tests {
     fn mock_select_preset_setlist_out_of_range() {
         let client = MockClient::new();
         assert!(client.select_preset(1, 0).is_err());
+    }
+
+    #[test]
+    fn mock_rename_preset_accepts_valid_name() {
+        let client = MockClient::new();
+        assert!(client.rename_preset(0, 5, "New Name").is_ok());
+    }
+
+    #[test]
+    fn mock_rename_preset_rejects_invalid_input() {
+        let client = MockClient::new();
+        assert!(client.rename_preset(1, 0, "Name").is_err());
+        assert!(client.rename_preset(0, 128, "Name").is_err());
+        assert!(client.rename_preset(0, 0, "").is_err());
+        assert!(
+            client
+                .rename_preset(0, 0, "Way Too Long Preset Name")
+                .is_err()
+        );
     }
 
     #[test]

@@ -12,6 +12,12 @@ pub struct App {
     pub presets: Vec<Preset>,
     pub error_log: Option<String>,
     pub selected_preset: Option<u8>,
+    /// Name being edited for the selected preset.
+    pub rename_input: String,
+    /// `true` while a rename is in flight; blocks a second submit.
+    pub rename_pending: bool,
+    /// Why the last rename failed, shown under the name field.
+    pub rename_error: Option<String>,
 }
 
 impl Default for App {
@@ -24,11 +30,22 @@ impl Default for App {
             presets: Vec::new(),
             error_log: None,
             selected_preset: None,
+            rename_input: String::new(),
+            rename_pending: false,
+            rename_error: None,
         }
     }
 }
 
 impl App {
+    /// Clears the selection together with any rename in progress.
+    pub fn clear_selection(&mut self) {
+        self.selected_preset = None;
+        self.rename_input.clear();
+        self.rename_pending = false;
+        self.rename_error = None;
+    }
+
     pub fn new() -> (Self, Task<Message>) {
         (Self::default(), Task::none())
     }

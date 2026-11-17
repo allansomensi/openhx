@@ -4,6 +4,13 @@ connected-header = Connected: { $device_name }
 setlist-option = Setlist { $number }
 error-title = Communication Error
 error-unknown = Unknown error
+edit-title = Edit Preset
+edit-hint = Select a preset to edit it.
+rename-label = Name
+rename-placeholder = Preset name
+rename-button = Rename
+rename-in-progress = Renaming...
+rename-failed = Rename failed: { $error }
 
 cli-list-presets-about = Lists all presets from a connected Line 6 device.
 cli-list-presets-long = Probes the USB bus automatically if no device is specified.
@@ -23,6 +30,11 @@ cli-select-preset-about = Selects a specific preset on the device
 cli-select-preset-long = Switches the active preset on the connected Line 6 device by providing the setlist and preset indices.
 cli-selecting-preset = Selecting setlist { $setlist }, preset { $preset }...
 cli-preset-selected-success = Preset successfully selected!
+cli-rename-preset-about = Renames a preset on the device
+cli-rename-preset-long = Stores a new name for the preset at the given setlist and preset indices. Names hold up to 16 printable ASCII characters.
+cli-name-help = New preset name (up to 16 printable ASCII characters).
+cli-renaming-preset = Renaming setlist { $setlist }, preset { $preset } to "{ $name }"...
+cli-preset-renamed-success = Preset successfully renamed!
 
 mock-mode-active = [mock] Running in mock mode — no hardware required.
 
@@ -31,7 +43,12 @@ usb-device-unresponsive = Device '{ $device }' unresponsive after { $attempts } 
 usb-kernel-detach-failed = Kernel detach failed: { $error }
 usb-stream-offset-overflow = Stream offset overflow in USB payload.
 usb-setlist-out-of-range = Setlist { $setlist } is out of range: '{ $device }' holds { $count } setlist(s) (0–{ $max }).
+usb-preset-out-of-range = Preset { $preset } is out of range: '{ $device }' holds presets 0–{ $max } per setlist.
 usb-retry-attempt = [{ $device }] Attempt { $current }/{ $total } failed. Retrying in { $wait_ms } ms...
+
+preset-name-empty = Preset name must not be empty.
+preset-name-too-long = Preset name is { $len } characters long; the device stores at most { $max }.
+preset-name-invalid-char = Preset name contains '{ $character }'; only printable ASCII characters are allowed.
 
 msgpack-root-not-array = Root MessagePack value is not an array.
 msgpack-preset-not-map = Preset item is not a map.

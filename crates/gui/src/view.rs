@@ -1,5 +1,5 @@
 use crate::{app::App, message::Message, state::AppState};
-use iced::widget::{button, column, container, pick_list, scrollable, text};
+use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input};
 use iced::{Alignment, Color, Element, Length, Padding, Theme};
 use openhx_core::Setlist;
 use openhx_i18n::fl;
@@ -139,7 +139,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
             }
             let sidebar = sidebar.push(list_container);
 
-            column![header, sidebar]
+            let body = row![sidebar, edit_panel(app)]
+                .spacing(20)
+                .height(Length::Fill);
+
+            column![header, body]
                 .spacing(20)
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -164,4 +168,58 @@ pub fn view(app: &App) -> Element<'_, Message> {
         .center_y(Length::Fill)
         .padding(20)
         .into()
+}
+
+/// Editor for the selected preset; currently its name.
+fn edit_panel(app: &App) -> Element<'_, Message> {
+    let title = text(fl!("edit-title")).size(18);
+
+    let Some(preset) = app.selected_preset else {
+        return column![title, text(fl!("edit-hint")).size(14)]
+            .spacing(10)
+            .width(Length::Fill)
+            .into();
+    };
+
+    let label = text(format!("{:03}   {}", preset, fl!("rename-label"))).size(14);
+
+    let mut name_input = text_input(&fl!("rename-placeholder"), &app.rename_input)
+        .size(14)
+        .padding(6)
+        .width(Length::Fill);
+    if !app.rename_pending {
+        name_input = name_input
+            .on_input(Message::RenameInputChanged)
+            .on_submit(Message::RenameSubmitted);
+    }
+
+    let button_label = if app.rename_pending {
+        fl!("rename-in-progress")
+    } else {
+        fl!("rename-button")
+    };
+    let rename_button = button(text(button_label).size(14))
+        .padding([6, 14])
+        .on_press_maybe((!app.rename_pending).then_some(Message::RenameSubmitted));
+
+    let mut panel = column![
+        title,
+        label,
+        row![name_input, rename_button]
+            .spacing(8)
+            .align_y(Alignment::Center),
+    ]
+    .spacing(10)
+    .width(Length::Fill);
+
+    if let Some(err) = &app.rename_error {
+        let error = text(fl!("rename-failed", error = err.clone()))
+            .size(13)
+            .style(|_theme: &Theme| text::Style {
+                color: Some(Color::from_rgb(0.9, 0.3, 0.3)),
+            });
+        panel = panel.push(error);
+    }
+
+    panel.into()
 }

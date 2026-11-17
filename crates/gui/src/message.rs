@@ -16,4 +16,16 @@ pub enum Message {
     /// Loading a setlist failed; the previous list stays on screen.
     SetlistLoadFailed(u8, String),
     PresetSelected(u8),
+    /// The user edited the name field of the selected preset.
+    RenameInputChanged(String),
+    /// The user asked to store the edited name on the device.
+    RenameSubmitted,
+    /// The device stored a new preset name.
+    PresetRenamed {
+        setlist: u8,
+        preset: u8,
+        name: String,
+    },
+    /// Storing a new preset name failed.
+    RenameFailed(String),
 }

@@ -37,6 +37,21 @@ impl DeviceProfile {
             )))
         }
     }
+
+    /// Checks that `preset` addresses a slot within one of this device's
+    /// setlists.
+    pub fn validate_preset(&self, preset: u8) -> Result<(), HxError> {
+        if u16::from(preset) < self.preset_count {
+            Ok(())
+        } else {
+            Err(HxError::protocol(fl!(
+                "usb-preset-out-of-range",
+                preset = preset,
+                device = self.name,
+                max = self.preset_count.saturating_sub(1)
+            )))
+        }
+    }
 }
 
 impl std::fmt::Display for DeviceProfile {
@@ -92,6 +107,34 @@ mod tests {
         };
         assert!(matches!(
             profile.validate_setlist(1),
+            Err(HxError::Protocol(_))
+        ));
+    }
+
+    #[test]
+    fn validate_preset_accepts_slots_below_count() {
+        let profile = DeviceProfile {
+            name: "Stomp",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 126,
+            setlist_count: 1,
+        };
+        assert!(profile.validate_preset(0).is_ok());
+        assert!(profile.validate_preset(125).is_ok());
+    }
+
+    #[test]
+    fn validate_preset_rejects_slots_at_or_above_count() {
+        let profile = DeviceProfile {
+            name: "Stomp",
+            vendor_id: 0x0E41,
+            product_id: 0x0000,
+            preset_count: 126,
+            setlist_count: 1,
+        };
+        assert!(matches!(
+            profile.validate_preset(126),
             Err(HxError::Protocol(_))
         ));
     }

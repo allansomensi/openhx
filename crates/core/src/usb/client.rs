@@ -1,12 +1,12 @@
 use super::{
-    parser::{parse_msgpack_stream, parse_setlists, response_payload},
+    parser::{check_response_status, parse_msgpack_stream, parse_setlists, response_payload},
     protocol::*,
 };
 use crate::{
     client::DeviceClient,
     device::{KnownDevice, catalog::DEVICE_CATALOG, profile::DeviceProfile},
     error::HxError,
-    models::{Preset, Setlist},
+    models::{Preset, Setlist, validate_preset_name},
 };
 use openhx_i18n::fl;
 use rusb::{Context, DeviceHandle, UsbContext};
@@ -264,6 +264,66 @@ impl Client {
         Ok(())
     }
 
+    /// Core retry loop for renaming a preset, extracted to avoid name collision
+    /// with the [`DeviceClient`] trait method of the same name.
+    ///
+    /// Retrying is safe: storing the same name twice leaves the device in
+    /// the same state as storing it once.
+    fn rename_preset_impl(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError> {
+        let timeout = Duration::from_millis(TIMEOUT_MS);
+
+        for attempt in 0..MAX_INIT_RETRIES {
+            if attempt > 0 {
+                self.wait_with_backoff(attempt);
+            }
+            self.drain_stale_data();
+
+            match self.run_rename_session(setlist, preset, name, timeout) {
+                Ok(()) => return Ok(()),
+                Err(HxError::Usb(rusb::Error::Timeout)) if attempt + 1 < MAX_INIT_RETRIES => {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Err(HxError::protocol(fl!(
+            "usb-device-unresponsive",
+            device = self.profile.name,
+            attempts = MAX_INIT_RETRIES
+        )))
+    }
+
+    /// Internal routine to handle the session cycle for renaming a preset.
+    fn run_rename_session(
+        &self,
+        setlist: u8,
+        preset: u8,
+        name: &str,
+        timeout: Duration,
+    ) -> Result<(), HxError> {
+        let mut buf = vec![0u8; 512];
+
+        self.session_init(&mut buf, timeout)?;
+
+        // Like a selection, the rename is the first command after session
+        // init, so it takes seq 0x06.
+        let seq = 0x06;
+        let request = build_rename_preset_request(seq, setlist, preset, name);
+
+        self.handle.write_bulk(EP_OUT, &request, timeout)?;
+        let n = self.read_for_seq(seq, &mut buf, timeout)?;
+
+        // The reply envelope reports whether the device accepted the name.
+        check_response_status(response_payload(&buf, n)?)?;
+
+        // The device broadcasts the changed name to its other channels; clear
+        // those notifications before the next operation.
+        self.drain_stale_data();
+
+        Ok(())
+    }
+
     /// Executes a single, complete preset extraction session for `setlist`.
     fn run_session(&self, setlist: u8, timeout: Duration) -> Result<Vec<Preset>, HxError> {
         let mut buf = vec![0u8; 512];
@@ -466,6 +526,14 @@ impl DeviceClient for Client {
     fn select_preset(&self, setlist: u8, preset: u8) -> Result<(), HxError> {
         self.profile.validate_setlist(setlist)?;
         self.select_preset_impl(setlist, preset)
+    }
+
+    #[inline]
+    fn rename_preset(&self, setlist: u8, preset: u8, name: &str) -> Result<(), HxError> {
+        self.profile.validate_setlist(setlist)?;
+        self.profile.validate_preset(preset)?;
+        validate_preset_name(name)?;
+        self.rename_preset_impl(setlist, preset, name)
     }
 }
 

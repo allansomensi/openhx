@@ -4,6 +4,13 @@ connected-header = Conectado: { $device_name }
 setlist-option = Setlist { $number }
 error-title = Erro de Comunicação
 error-unknown = Erro desconhecido
+edit-title = Editar Preset
+edit-hint = Selecione um preset para editá-lo.
+rename-label = Nome
+rename-placeholder = Nome do preset
+rename-button = Renomear
+rename-in-progress = Renomeando...
+rename-failed = Falha ao renomear: { $error }
 
 cli-list-presets-about = Lista todos os presets de um dispositivo Line 6 conectado.
 cli-list-presets-long = Verifica o barramento USB automaticamente se nenhum dispositivo for especificado.
@@ -23,6 +30,11 @@ cli-select-preset-about = Seleciona um preset específico no dispositivo
 cli-select-preset-long = Altera o preset ativo no dispositivo Line 6 conectado, informando os índices de setlist e preset.
 cli-selecting-preset = Selecionando setlist { $setlist }, preset { $preset }...
 cli-preset-selected-success = Preset selecionado com sucesso!
+cli-rename-preset-about = Renomeia um preset no dispositivo
+cli-rename-preset-long = Grava um novo nome para o preset nos índices de setlist e preset informados. Nomes aceitam até 16 caracteres ASCII imprimíveis.
+cli-name-help = Novo nome do preset (até 16 caracteres ASCII imprimíveis).
+cli-renaming-preset = Renomeando setlist { $setlist }, preset { $preset } para "{ $name }"...
+cli-preset-renamed-success = Preset renomeado com sucesso!
 
 mock-mode-active = [mock] Rodando em modo simulado — hardware físico não é necessário.
 
@@ -31,7 +43,12 @@ usb-device-unresponsive = Dispositivo '{ $device }' não respondeu após { $atte
 usb-kernel-detach-failed = Falha ao desanexar o kernel: { $error }
 usb-stream-offset-overflow = Estouro de offset do fluxo no payload USB.
 usb-setlist-out-of-range = Setlist { $setlist } fora do intervalo: '{ $device }' possui { $count } setlist(s) (0–{ $max }).
+usb-preset-out-of-range = Preset { $preset } fora do intervalo: '{ $device }' possui presets 0–{ $max } por setlist.
 usb-retry-attempt = [{ $device }] Tentativa { $current }/{ $total } falhou. Tentando novamente em { $wait_ms } ms...
+
+preset-name-empty = O nome do preset não pode ser vazio.
+preset-name-too-long = O nome do preset tem { $len } caracteres; o dispositivo grava no máximo { $max }.
+preset-name-invalid-char = O nome do preset contém '{ $character }'; apenas caracteres ASCII imprimíveis são permitidos.
 
 msgpack-root-not-array = O valor raiz do MessagePack não é um array.
 msgpack-preset-not-map = O item do preset não é um mapa.
