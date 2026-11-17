@@ -1,0 +1,9 @@
+# udev rule granting the logged-in user access to Line 6 HX devices,
+# so openhx can talk to them without root.
+#
+# Install:
+#   sudo cp 70-openhx.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# then unplug and replug the device.
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0e41", MODE="0660", TAG+="uaccess"

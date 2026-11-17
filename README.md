@@ -74,6 +74,19 @@ cargo build --release
 The binary will be at `target/release/openhx`.
 </details>
 
+### 🐧 Linux: USB permissions
+
+By default, Linux only lets root open raw USB devices, so openhx reports an
+access error even though the device is plugged in. Install the bundled udev
+rule to grant the logged-in user access:
+
+```bash
+sudo cp pkg/linux/70-openhx.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+Then unplug and replug the device.
+
 ---
 
 ## 💻 Usage
